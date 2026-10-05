@@ -1,0 +1,3137 @@
+{
+  "title" : "", 
+  "description" : "", 
+  "author" : "", 
+  "targetLoudness" : -18.0, 
+  "shouldApplyLoudnessNormalization" : true, 
+  "videoFormatFrameRate" : 30, 
+  "audioFormatSampleRate" : 44100, 
+  "allowSubFrameEditing" : false, 
+  "width" : 1080.0, 
+  "height" : 1920.0, 
+  "version" : "10.0", 
+  "editRate" : 705600000, 
+  "authoringClientName" : {
+    "name" : "Camtasia", 
+    "platform" : "Windows", 
+    "version" : "2026.2.1"
+  }, 
+  "sourceBin" : [
+    {
+      "id" : 1, 
+      "src" : "C450 - Clásico “Hípica Nacional” - Princesa Fina - Hipódromo La Rinconada - Reunión 38 - 2026.mp4", 
+      "rect" : [0, 0, 1920, 1080], 
+      "lastMod" : "20261003T235933", 
+      "loudnessNormalization" : true, 
+      "sourceTracks" : [
+        {
+          "range" : [0, 187655], 
+          "type" : 0, 
+          "editRate" : 1000, 
+          "trackRect" : [0, 0, 1920, 1080], 
+          "sampleRate" : "2997/100", 
+          "bitDepth" : 24, 
+          "numChannels" : 0, 
+          "integratedLUFS" : 100.0, 
+          "peakLevel" : -1.0, 
+          "tag" : 0, 
+          "metaData" : "C450 - Clásico “Hípica Nacional” - Princesa Fina - Hipódromo La Rinconada - Reunión 38 - 2026.mp4;", 
+          "parameters" : {
+          }
+        }, 
+        {
+          "range" : [0, 187711], 
+          "type" : 2, 
+          "editRate" : 1000, 
+          "trackRect" : [0, 0, 0, 0], 
+          "sampleRate" : 44100, 
+          "bitDepth" : 16, 
+          "numChannels" : 2, 
+          "integratedLUFS" : -14.0193589997829, 
+          "peakLevel" : 0.464216977357864, 
+          "tag" : 0, 
+          "metaData" : "C450 - Clásico “Hípica Nacional” - Princesa Fina - Hipódromo La Rinconada - Reunión 38 - 2026.mp4;", 
+          "parameters" : {
+          }
+        }
+      ], 
+      "metadata" : {
+        "timeAdded" : "20261004T000041.438431"
+      }
+    }, 
+    {
+      "id" : 2, 
+      "src" : "Cintillo-Tricolor_Jhan-Magallanes_1920x200.gif", 
+      "rect" : [0, 0, 1920, 200], 
+      "lastMod" : "20261004T000412", 
+      "loudnessNormalization" : true, 
+      "sourceTracks" : [
+        {
+          "range" : [0, 149], 
+          "type" : 0, 
+          "editRate" : 4, 
+          "trackRect" : [0, 0, 1920, 200], 
+          "sampleRate" : 4, 
+          "bitDepth" : 8, 
+          "numChannels" : 0, 
+          "integratedLUFS" : 100.0, 
+          "peakLevel" : -1.0, 
+          "tag" : 0, 
+          "metaData" : "Cintillo-Tricolor_Jhan-Magallanes_1920x200.gif;", 
+          "parameters" : {
+          }
+        }
+      ], 
+      "metadata" : {
+        "timeAdded" : "20261004T000529.396384"
+      }
+    }, 
+    {
+      "id" : 3, 
+      "src" : "Tricolor-Hipico_R38_2026-09-27_C09.png", 
+      "rect" : [0, 0, 4000, 720], 
+      "lastMod" : "20261004T000859", 
+      "loudnessNormalization" : true, 
+      "sourceTracks" : [
+        {
+          "range" : [0, 1], 
+          "type" : 1, 
+          "editRate" : 10000000, 
+          "trackRect" : [0, 0, 4000, 720], 
+          "sampleRate" : 0, 
+          "bitDepth" : 32, 
+          "numChannels" : 0, 
+          "integratedLUFS" : 100.0, 
+          "peakLevel" : -1.0, 
+          "tag" : 0, 
+          "metaData" : "Tricolor-Hipico_R38_2026-09-27_C09.png;", 
+          "parameters" : {
+          }
+        }
+      ], 
+      "metadata" : {
+        "timeAdded" : "20261004T000904.617228"
+      }
+    }, 
+    {
+      "id" : 4, 
+      "src" : "Tricolor-Hipico_R38_2026-09-27_C09_ganador.png", 
+      "rect" : [0, 0, 4000, 720], 
+      "lastMod" : "20261004T001105", 
+      "loudnessNormalization" : true, 
+      "sourceTracks" : [
+        {
+          "range" : [0, 1], 
+          "type" : 1, 
+          "editRate" : 10000000, 
+          "trackRect" : [0, 0, 4000, 720], 
+          "sampleRate" : 0, 
+          "bitDepth" : 32, 
+          "numChannels" : 0, 
+          "integratedLUFS" : 100.0, 
+          "peakLevel" : -1.0, 
+          "tag" : 0, 
+          "metaData" : "Tricolor-Hipico_R38_2026-09-27_C09_ganador.png;", 
+          "parameters" : {
+          }
+        }
+      ], 
+      "metadata" : {
+        "timeAdded" : "20261004T001131.671571"
+      }
+    }, 
+    {
+      "id" : 5, 
+      "src" : "Tricolor-Hipico_R38_2026-09-27_C09 (5).png", 
+      "rect" : [0, 0, 4000, 720], 
+      "lastMod" : "20261004T001100", 
+      "loudnessNormalization" : true, 
+      "sourceTracks" : [
+        {
+          "range" : [0, 1], 
+          "type" : 1, 
+          "editRate" : 10000000, 
+          "trackRect" : [0, 0, 4000, 720], 
+          "sampleRate" : 0, 
+          "bitDepth" : 32, 
+          "numChannels" : 0, 
+          "integratedLUFS" : 100.0, 
+          "peakLevel" : -1.0, 
+          "tag" : 0, 
+          "metaData" : "Tricolor-Hipico_R38_2026-09-27_C09 (5).png;", 
+          "parameters" : {
+          }
+        }
+      ], 
+      "metadata" : {
+        "timeAdded" : "20261004T001131.674562"
+      }
+    }, 
+    {
+      "id" : 6, 
+      "src" : "Tricolor-Hipico_R38_2026-09-27_C09 (4).png", 
+      "rect" : [0, 0, 4000, 720], 
+      "lastMod" : "20261004T001047", 
+      "loudnessNormalization" : true, 
+      "sourceTracks" : [
+        {
+          "range" : [0, 1], 
+          "type" : 1, 
+          "editRate" : 10000000, 
+          "trackRect" : [0, 0, 4000, 720], 
+          "sampleRate" : 0, 
+          "bitDepth" : 32, 
+          "numChannels" : 0, 
+          "integratedLUFS" : 100.0, 
+          "peakLevel" : -1.0, 
+          "tag" : 0, 
+          "metaData" : "Tricolor-Hipico_R38_2026-09-27_C09 (4).png;", 
+          "parameters" : {
+          }
+        }
+      ], 
+      "metadata" : {
+        "timeAdded" : "20261004T001131.678561"
+      }
+    }, 
+    {
+      "id" : 7, 
+      "src" : "Tricolor-Hipico_R38_2026-09-27_C09 (3).png", 
+      "rect" : [0, 0, 4000, 720], 
+      "lastMod" : "20261004T001033", 
+      "loudnessNormalization" : true, 
+      "sourceTracks" : [
+        {
+          "range" : [0, 1], 
+          "type" : 1, 
+          "editRate" : 10000000, 
+          "trackRect" : [0, 0, 4000, 720], 
+          "sampleRate" : 0, 
+          "bitDepth" : 32, 
+          "numChannels" : 0, 
+          "integratedLUFS" : 100.0, 
+          "peakLevel" : -1.0, 
+          "tag" : 0, 
+          "metaData" : "Tricolor-Hipico_R38_2026-09-27_C09 (3).png;", 
+          "parameters" : {
+          }
+        }
+      ], 
+      "metadata" : {
+        "timeAdded" : "20261004T001131.681066"
+      }
+    }, 
+    {
+      "id" : 8, 
+      "src" : "Tricolor-Hipico_R38_2026-09-27_C09 (2).png", 
+      "rect" : [0, 0, 4000, 720], 
+      "lastMod" : "20261004T001016", 
+      "loudnessNormalization" : true, 
+      "sourceTracks" : [
+        {
+          "range" : [0, 1], 
+          "type" : 1, 
+          "editRate" : 10000000, 
+          "trackRect" : [0, 0, 4000, 720], 
+          "sampleRate" : 0, 
+          "bitDepth" : 32, 
+          "numChannels" : 0, 
+          "integratedLUFS" : 100.0, 
+          "peakLevel" : -1.0, 
+          "tag" : 0, 
+          "metaData" : "Tricolor-Hipico_R38_2026-09-27_C09 (2).png;", 
+          "parameters" : {
+          }
+        }
+      ], 
+      "metadata" : {
+        "timeAdded" : "20261004T001131.684068"
+      }
+    }, 
+    {
+      "id" : 9, 
+      "src" : "Tricolor-Hipico_R38_2026-09-27_C09 (1).png", 
+      "rect" : [0, 0, 4000, 720], 
+      "lastMod" : "20261004T001007", 
+      "loudnessNormalization" : true, 
+      "sourceTracks" : [
+        {
+          "range" : [0, 1], 
+          "type" : 1, 
+          "editRate" : 10000000, 
+          "trackRect" : [0, 0, 4000, 720], 
+          "sampleRate" : 0, 
+          "bitDepth" : 32, 
+          "numChannels" : 0, 
+          "integratedLUFS" : 100.0, 
+          "peakLevel" : -1.0, 
+          "tag" : 0, 
+          "metaData" : "Tricolor-Hipico_R38_2026-09-27_C09 (1).png;", 
+          "parameters" : {
+          }
+        }
+      ], 
+      "metadata" : {
+        "timeAdded" : "20261004T001131.688074"
+      }
+    }
+  ], 
+  "timeline" : {
+    "id" : 10, 
+    "sceneTrack" : {
+      "scenes" : [
+        {
+          "csml" : {
+            "tracks" : [
+              {
+                "trackIndex" : 0, 
+                "medias" : [
+                  {
+                    "id" : 11, 
+                    "_type" : "UnifiedMedia", 
+                    "video" : 
+                      {
+                        "id" : 12, 
+                        "_type" : "VMFile", 
+                        "src" : 1, 
+                        "trackNumber" : 0, 
+                        "attributes" : {
+                          "ident" : "C450 - Clásico “Hípica Nacional” - Princesa Fina - Hipódromo La Rinconada - Reunión 38 - 2026"
+                        }, 
+                        "parameters" : {
+                          "translation0" : {
+                            "type" : "double", 
+                            "defaultValue" : 275.0, 
+                            "interp" : "eioe", 
+                            "keyframes" : [
+                              {
+                                "endTime" : 705600000, 
+                                "time" : 0, 
+                                "value" : 83.1803790268733, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 1740480000, 
+                                "time" : 1034880000, 
+                                "value" : -27.8730993367537, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 3528000000, 
+                                "time" : 2822400000, 
+                                "value" : -149.022334862035, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 4021920000, 
+                                "time" : 3528000000, 
+                                "value" : -300.458929893889, 
+                                "duration" : 493920000
+                              }, 
+                              {
+                                "endTime" : 4915680000, 
+                                "time" : 4210080000, 
+                                "value" : -391.320886913001, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 5433120000, 
+                                "time" : 4915680000, 
+                                "value" : -532.661708942731, 
+                                "duration" : 517440000
+                              }, 
+                              {
+                                "endTime" : 6115200000, 
+                                "time" : 5433120000, 
+                                "value" : -714.385622980956, 
+                                "duration" : 682080000
+                              }, 
+                              {
+                                "endTime" : 6538560000, 
+                                "time" : 6115200000, 
+                                "value" : -855.726445010686, 
+                                "duration" : 423360000
+                              }, 
+                              {
+                                "endTime" : 7150080000, 
+                                "time" : 6538560000, 
+                                "value" : -956.684175031922, 
+                                "duration" : 611520000
+                              }, 
+                              {
+                                "endTime" : 8984640000, 
+                                "time" : 8279040000, 
+                                "value" : -825.439126004316, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 9901920000, 
+                                "time" : 9196320000, 
+                                "value" : -976.87572103617, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 11124960000, 
+                                "time" : 10419360000, 
+                                "value" : -764.864487991574, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 11901120000, 
+                                "time" : 11195520000, 
+                                "value" : -573.044800951225, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 13030080000, 
+                                "time" : 12324480000, 
+                                "value" : -179.309653868406, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 14958720000, 
+                                "time" : 14253120000, 
+                                "value" : -58.1603778429222, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 16228800000, 
+                                "time" : 15523200000, 
+                                "value" : -260.075837885394, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 16628640000, 
+                                "time" : 16228800000, 
+                                "value" : -492.278616934237, 
+                                "duration" : 399840000
+                              }, 
+                              {
+                                "endTime" : 17404800000, 
+                                "time" : 16699200000, 
+                                "value" : -320.650475898135, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 17875200000, 
+                                "time" : 17404800000, 
+                                "value" : -138.926561859911, 
+                                "duration" : 470400000
+                              }, 
+                              {
+                                "endTime" : 20462400000, 
+                                "time" : 19756800000, 
+                                "value" : 143.75508219955, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 23590560000, 
+                                "time" : 22884960000, 
+                                "value" : -68.2561508450458, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 24108000000, 
+                                "time" : 23590560000, 
+                                "value" : 184.138174208044, 
+                                "duration" : 517440000
+                              }, 
+                              {
+                                "endTime" : 31822560000, 
+                                "time" : 31116960000, 
+                                "value" : 365.862088246269, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 36197280000, 
+                                "time" : 35491680000, 
+                                "value" : 638.447959303606, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 36926400000, 
+                                "time" : 36220800000, 
+                                "value" : 406.245180254763, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 38031840000, 
+                                "time" : 37326240000, 
+                                "value" : 779.788781333336, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 40430880000, 
+                                "time" : 39725280000, 
+                                "value" : 618.256413299359, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 42453600000, 
+                                "time" : 41748000000, 
+                                "value" : 779.788781333336, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 44923200000, 
+                                "time" : 44217600000, 
+                                "value" : 355.766315244145, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 47228160000, 
+                                "time" : 46522560000, 
+                                "value" : 73.0846711846845, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 47957280000, 
+                                "time" : 47251680000, 
+                                "value" : 416.340953256887, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 56471520000, 
+                                "time" : 55765920000, 
+                                "value" : 628.352186301482, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 61010880000, 
+                                "time" : 60305280000, 
+                                "value" : 789.88455433546, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 64468320000, 
+                                "time" : 63762720000, 
+                                "value" : 547.586002284493, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 65032800000, 
+                                "time" : 64468320000, 
+                                "value" : 759.597235329089, 
+                                "duration" : 564480000
+                              }, 
+                              {
+                                "endTime" : 67667040000, 
+                                "time" : 66961440000, 
+                                "value" : 426.436726259011, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 70371840000, 
+                                "time" : 69666240000, 
+                                "value" : 244.712812220786, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 70936320000, 
+                                "time" : 70371840000, 
+                                "value" : 153.850855201673, 
+                                "duration" : 564480000
+                              }, 
+                              {
+                                "endTime" : 71453760000, 
+                                "time" : 70936320000, 
+                                "value" : 285.09590422928, 
+                                "duration" : 517440000
+                              }, 
+                              {
+                                "endTime" : 72088800000, 
+                                "time" : 71453760000, 
+                                "value" : 123.563536195302, 
+                                "duration" : 635040000
+                              }, 
+                              {
+                                "endTime" : 72559200000, 
+                                "time" : 72088800000, 
+                                "value" : -98.5434698514165, 
+                                "duration" : 470400000
+                              }, 
+                              {
+                                "endTime" : 73852800000, 
+                                "time" : 73147200000, 
+                                "value" : -270.171610887518, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 74205600000, 
+                                "time" : 73852800000, 
+                                "value" : -492.278616934237, 
+                                "duration" : 352800000
+                              }, 
+                              {
+                                "endTime" : 76040160000, 
+                                "time" : 75334560000, 
+                                "value" : -340.842021902383, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 78392160000, 
+                                "time" : 77686560000, 
+                                "value" : -249.980064883271, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 80250240000, 
+                                "time" : 79544640000, 
+                                "value" : -149.022334862034, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 81285120000, 
+                                "time" : 80579520000, 
+                                "value" : -249.980064883271, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 81732000000, 
+                                "time" : 81285120000, 
+                                "value" : -421.608205919372, 
+                                "duration" : 446880000
+                              }, 
+                              {
+                                "endTime" : 82296480000, 
+                                "time" : 81732000000, 
+                                "value" : -785.056033995821, 
+                                "duration" : 564480000
+                              }, 
+                              {
+                                "endTime" : 85377600000, 
+                                "time" : 84672000000, 
+                                "value" : -623.523665961844, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 85848000000, 
+                                "time" : 85377600000, 
+                                "value" : -350.937794904507, 
+                                "duration" : 470400000
+                              }, 
+                              {
+                                "endTime" : 88317600000, 
+                                "time" : 87612000000, 
+                                "value" : -88.4476968492927, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 89893440000, 
+                                "time" : 89187840000, 
+                                "value" : 345.670542242022, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 91234080000, 
+                                "time" : 90528480000, 
+                                "value" : 73.0846711846846, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 91586880000, 
+                                "time" : 91234080000, 
+                                "value" : -199.501199872653, 
+                                "duration" : 352800000
+                              }, 
+                              {
+                                "endTime" : 91869120000, 
+                                "time" : 91586880000, 
+                                "value" : -583.140573953349, 
+                                "duration" : 282240000
+                              }, 
+                              {
+                                "endTime" : 92410080000, 
+                                "time" : 91869120000, 
+                                "value" : -371.129340908754, 
+                                "duration" : 540960000
+                              }, 
+                              {
+                                "endTime" : 92739360000, 
+                                "time" : 92410080000, 
+                                "value" : -229.788518879023, 
+                                "duration" : 329280000
+                              }, 
+                              {
+                                "endTime" : 93256800000, 
+                                "time" : 92739360000, 
+                                "value" : -371.129340908754, 
+                                "duration" : 517440000
+                              }, 
+                              {
+                                "endTime" : 96573120000, 
+                                "time" : 95867520000, 
+                                "value" : -502.374389936361, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 98831040000, 
+                                "time" : 98125440000, 
+                                "value" : 517.298683278123, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 101653440000, 
+                                "time" : 100947840000, 
+                                "value" : 688.926824314224, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 102500160000, 
+                                "time" : 101794560000, 
+                                "value" : 184.138174208044, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 103229280000, 
+                                "time" : 102523680000, 
+                                "value" : -411.512432917248, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 104805120000, 
+                                "time" : 104099520000, 
+                                "value" : 103.371990191056, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 105769440000, 
+                                "time" : 105063840000, 
+                                "value" : -330.746248900259, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 109085760000, 
+                                "time" : 108380160000, 
+                                "value" : -37.9688318386752, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 110661600000, 
+                                "time" : 109956000000, 
+                                "value" : 325.478996237775, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 120351840000, 
+                                "time" : 119646240000, 
+                                "value" : 487.011364271752, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 120798720000, 
+                                "time" : 120351840000, 
+                                "value" : 275.000131227157, 
+                                "duration" : 446880000
+                              }, 
+                              {
+                                "endTime" : 122304000000, 
+                                "time" : 121598400000, 
+                                "value" : 83.1804441868079, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 124303200000, 
+                                "time" : 123597600000, 
+                                "value" : 234.617039218662, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 128372160000, 
+                                "time" : 127666560000, 
+                                "value" : -138.926561859911, 
+                                "duration" : 705600000
+                              }
+                            ]
+                          }, 
+                          "translation1" : {
+                            "type" : "double", 
+                            "defaultValue" : -5.6843418860808e-14, 
+                            "interp" : "eioe", 
+                            "keyframes" : [
+                              {
+                                "endTime" : 705600000, 
+                                "time" : 0, 
+                                "value" : -7.70246530805707e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 1740480000, 
+                                "time" : 1034880000, 
+                                "value" : 7.152288633961e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 3528000000, 
+                                "time" : 2822400000, 
+                                "value" : 7.7024640797847e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 4021920000, 
+                                "time" : 3528000000, 
+                                "value" : 7.82472420064597e-05, 
+                                "duration" : 493920000
+                              }, 
+                              {
+                                "endTime" : 4915680000, 
+                                "time" : 4210080000, 
+                                "value" : 8.31376893625236e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 5433120000, 
+                                "time" : 4915680000, 
+                                "value" : -6.41872147254027e-05, 
+                                "duration" : 517440000
+                              }, 
+                              {
+                                "endTime" : 6115200000, 
+                                "time" : 5433120000, 
+                                "value" : -7.70246286069686e-05, 
+                                "duration" : 682080000
+                              }, 
+                              {
+                                "endTime" : 6538560000, 
+                                "time" : 6115200000, 
+                                "value" : -9.53638272617063e-05, 
+                                "duration" : 423360000
+                              }, 
+                              {
+                                "endTime" : 7150080000, 
+                                "time" : 6538560000, 
+                                "value" : -7.70246347280677e-05, 
+                                "duration" : 611520000
+                              }, 
+                              {
+                                "endTime" : 9901920000, 
+                                "time" : 9196320000, 
+                                "value" : 7.70246347167702e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 11901120000, 
+                                "time" : 11195520000, 
+                                "value" : 7.82472353569488e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 13030080000, 
+                                "time" : 12324480000, 
+                                "value" : 8.31376823719522e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 14958720000, 
+                                "time" : 14253120000, 
+                                "value" : -6.41872221707219e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 16228800000, 
+                                "time" : 15523200000, 
+                                "value" : -7.7024628435269e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 16628640000, 
+                                "time" : 16228800000, 
+                                "value" : -9.53638235657147e-05, 
+                                "duration" : 399840000
+                              }, 
+                              {
+                                "endTime" : 17404800000, 
+                                "time" : 16699200000, 
+                                "value" : -7.70246343289944e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 24108000000, 
+                                "time" : 23590560000, 
+                                "value" : -7.82472317859415e-05, 
+                                "duration" : 517440000
+                              }, 
+                              {
+                                "endTime" : 31822560000, 
+                                "time" : 31116960000, 
+                                "value" : -8.3137676640895e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 36197280000, 
+                                "time" : 35491680000, 
+                                "value" : -8.98620534756313e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 36926400000, 
+                                "time" : 36220800000, 
+                                "value" : -7.70246285892304e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 38031840000, 
+                                "time" : 37326240000, 
+                                "value" : -9.53638201953842e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 40430880000, 
+                                "time" : 39725280000, 
+                                "value" : 7.70246346162764e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 47957280000, 
+                                "time" : 47251680000, 
+                                "value" : -7.58020411187349e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 56471520000, 
+                                "time" : 55765920000, 
+                                "value" : -8.19150783410716e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 61010880000, 
+                                "time" : 60305280000, 
+                                "value" : -8.92507504655976e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 64468320000, 
+                                "time" : 63762720000, 
+                                "value" : -7.70246284003225e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 65032800000, 
+                                "time" : 64468320000, 
+                                "value" : -9.53638161411238e-05, 
+                                "duration" : 564480000
+                              }, 
+                              {
+                                "endTime" : 67667040000, 
+                                "time" : 66961440000, 
+                                "value" : 7.7024634350437e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 72088800000, 
+                                "time" : 71453760000, 
+                                "value" : 7.82472240766791e-05, 
+                                "duration" : 635040000
+                              }, 
+                              {
+                                "endTime" : 72559200000, 
+                                "time" : 72088800000, 
+                                "value" : -7.09116038055783e-05, 
+                                "duration" : 470400000
+                              }, 
+                              {
+                                "endTime" : 73852800000, 
+                                "time" : 73147200000, 
+                                "value" : -8.37490020861888e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 74205600000, 
+                                "time" : 73852800000, 
+                                "value" : 5.9602421481494e-05, 
+                                "duration" : 352800000
+                              }, 
+                              {
+                                "endTime" : 76040160000, 
+                                "time" : 75334560000, 
+                                "value" : -6.73965706607272e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 78392160000, 
+                                "time" : 77686560000, 
+                                "value" : -7.7024634791154e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 81732000000, 
+                                "time" : 81285120000, 
+                                "value" : 7.70246346536839e-05, 
+                                "duration" : 446880000
+                              }, 
+                              {
+                                "endTime" : 82296480000, 
+                                "time" : 81732000000, 
+                                "value" : -7.58020459698615e-05, 
+                                "duration" : 564480000
+                              }, 
+                              {
+                                "endTime" : 85377600000, 
+                                "time" : 84672000000, 
+                                "value" : -8.19150758025537e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 85848000000, 
+                                "time" : 85377600000, 
+                                "value" : -8.92507444027874e-05, 
+                                "duration" : 470400000
+                              }, 
+                              {
+                                "endTime" : 88317600000, 
+                                "time" : 87612000000, 
+                                "value" : -7.70246284766021e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 89893440000, 
+                                "time" : 89187840000, 
+                                "value" : -9.53638116699299e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 91234080000, 
+                                "time" : 90528480000, 
+                                "value" : -7.70246344840145e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 92739360000, 
+                                "time" : 92410080000, 
+                                "value" : -7.82472190943489e-05, 
+                                "duration" : 329280000
+                              }, 
+                              {
+                                "endTime" : 93256800000, 
+                                "time" : 92739360000, 
+                                "value" : -8.3137658833395e-05, 
+                                "duration" : 517440000
+                              }, 
+                              {
+                                "endTime" : 96573120000, 
+                                "time" : 95867520000, 
+                                "value" : -8.98620322575248e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 98831040000, 
+                                "time" : 98125440000, 
+                                "value" : 0.000231073885579978, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 101653440000, 
+                                "time" : 100947840000, 
+                                "value" : 1.83391575052628e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 103229280000, 
+                                "time" : 102523680000, 
+                                "value" : -7.70246409877119e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 105769440000, 
+                                "time" : 105063840000, 
+                                "value" : 7.70246345962152e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 109085760000, 
+                                "time" : 108380160000, 
+                                "value" : 7.82472128400867e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 110661600000, 
+                                "time" : 109956000000, 
+                                "value" : 8.31376487137803e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 120351840000, 
+                                "time" : 119646240000, 
+                                "value" : -6.41872562465863e-05, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 120798720000, 
+                                "time" : 120351840000, 
+                                "value" : -8.46659706953501e-05, 
+                                "duration" : 446880000
+                              }, 
+                              {
+                                "endTime" : 122304000000, 
+                                "time" : 121598400000, 
+                                "value" : -7.70246347670597e-05, 
+                                "duration" : 705600000
+                              }
+                            ]
+                          }, 
+                          "scale0" : {
+                            "type" : "double", 
+                            "defaultValue" : 1.77777777777778, 
+                            "interp" : "eioe", 
+                            "keyframes" : [
+                              {
+                                "endTime" : 705600000, 
+                                "time" : 0, 
+                                "value" : 1.77777774155219, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 1740480000, 
+                                "time" : 1034880000, 
+                                "value" : 1.77777761476266, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 3528000000, 
+                                "time" : 2822400000, 
+                                "value" : 1.77777748797315, 
+                                "duration" : 705600000
+                              }
+                            ]
+                          }, 
+                          "scale1" : {
+                            "type" : "double", 
+                            "defaultValue" : 1.77777777777778, 
+                            "interp" : "eioe", 
+                            "keyframes" : [
+                              {
+                                "endTime" : 705600000, 
+                                "time" : 0, 
+                                "value" : 1.77777790003913, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 1740480000, 
+                                "time" : 1034880000, 
+                                "value" : 1.77777791588783, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 4021920000, 
+                                "time" : 3528000000, 
+                                "value" : 1.77777790003913, 
+                                "duration" : 493920000
+                              }, 
+                              {
+                                "endTime" : 4915680000, 
+                                "time" : 4210080000, 
+                                "value" : 1.77777788419044, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 5433120000, 
+                                "time" : 4915680000, 
+                                "value" : 1.77777801097998, 
+                                "duration" : 517440000
+                              }, 
+                              {
+                                "endTime" : 6115200000, 
+                                "time" : 5433120000, 
+                                "value" : 1.77777785249307, 
+                                "duration" : 682080000
+                              }, 
+                              {
+                                "endTime" : 6538560000, 
+                                "time" : 6115200000, 
+                                "value" : 1.77777797928261, 
+                                "duration" : 423360000
+                              }, 
+                              {
+                                "endTime" : 7150080000, 
+                                "time" : 6538560000, 
+                                "value" : 1.77777796343392, 
+                                "duration" : 611520000
+                              }, 
+                              {
+                                "endTime" : 8984640000, 
+                                "time" : 8279040000, 
+                                "value" : 1.77777794758522, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 9901920000, 
+                                "time" : 9196320000, 
+                                "value" : 1.77777793173653, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 11124960000, 
+                                "time" : 10419360000, 
+                                "value" : 1.77777791588784, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 11901120000, 
+                                "time" : 11195520000, 
+                                "value" : 1.77777790003915, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 13030080000, 
+                                "time" : 12324480000, 
+                                "value" : 1.77777788419046, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 14958720000, 
+                                "time" : 14253120000, 
+                                "value" : 1.77777801098, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 16228800000, 
+                                "time" : 15523200000, 
+                                "value" : 1.77777785249309, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 16628640000, 
+                                "time" : 16228800000, 
+                                "value" : 1.77777797928262, 
+                                "duration" : 399840000
+                              }, 
+                              {
+                                "endTime" : 17404800000, 
+                                "time" : 16699200000, 
+                                "value" : 1.77777796343393, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 17875200000, 
+                                "time" : 17404800000, 
+                                "value" : 1.77777794758524, 
+                                "duration" : 470400000
+                              }, 
+                              {
+                                "endTime" : 20462400000, 
+                                "time" : 19756800000, 
+                                "value" : 1.77777793173654, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 23590560000, 
+                                "time" : 22884960000, 
+                                "value" : 1.77777791588785, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 24108000000, 
+                                "time" : 23590560000, 
+                                "value" : 1.77777790003916, 
+                                "duration" : 517440000
+                              }, 
+                              {
+                                "endTime" : 31822560000, 
+                                "time" : 31116960000, 
+                                "value" : 1.77777788419047, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 36197280000, 
+                                "time" : 35491680000, 
+                                "value" : 1.77777801098001, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 36926400000, 
+                                "time" : 36220800000, 
+                                "value" : 1.7777778524931, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 38031840000, 
+                                "time" : 37326240000, 
+                                "value" : 1.77777797928263, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 40430880000, 
+                                "time" : 39725280000, 
+                                "value" : 1.77777796343394, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 42453600000, 
+                                "time" : 41748000000, 
+                                "value" : 1.77777794758525, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 44923200000, 
+                                "time" : 44217600000, 
+                                "value" : 1.77777793173656, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 47228160000, 
+                                "time" : 46522560000, 
+                                "value" : 1.77777791588787, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 47957280000, 
+                                "time" : 47251680000, 
+                                "value" : 1.77777790003917, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 56471520000, 
+                                "time" : 55765920000, 
+                                "value" : 1.77777788419048, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 61010880000, 
+                                "time" : 60305280000, 
+                                "value" : 1.77777801098002, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 64468320000, 
+                                "time" : 63762720000, 
+                                "value" : 1.77777785249311, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 65032800000, 
+                                "time" : 64468320000, 
+                                "value" : 1.77777797928265, 
+                                "duration" : 564480000
+                              }, 
+                              {
+                                "endTime" : 67667040000, 
+                                "time" : 66961440000, 
+                                "value" : 1.77777796343396, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 70371840000, 
+                                "time" : 69666240000, 
+                                "value" : 1.77777794758526, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 70936320000, 
+                                "time" : 70371840000, 
+                                "value" : 1.77777793173657, 
+                                "duration" : 564480000
+                              }, 
+                              {
+                                "endTime" : 71453760000, 
+                                "time" : 70936320000, 
+                                "value" : 1.77777791588788, 
+                                "duration" : 517440000
+                              }, 
+                              {
+                                "endTime" : 72088800000, 
+                                "time" : 71453760000, 
+                                "value" : 1.77777790003919, 
+                                "duration" : 635040000
+                              }, 
+                              {
+                                "endTime" : 72559200000, 
+                                "time" : 72088800000, 
+                                "value" : 1.7777778841905, 
+                                "duration" : 470400000
+                              }, 
+                              {
+                                "endTime" : 73852800000, 
+                                "time" : 73147200000, 
+                                "value" : 1.77777786834181, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 74205600000, 
+                                "time" : 73852800000, 
+                                "value" : 1.77777785249312, 
+                                "duration" : 352800000
+                              }, 
+                              {
+                                "endTime" : 76040160000, 
+                                "time" : 75334560000, 
+                                "value" : 1.77777797928265, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 78392160000, 
+                                "time" : 77686560000, 
+                                "value" : 1.77777796343396, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 80250240000, 
+                                "time" : 79544640000, 
+                                "value" : 1.77777794758527, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 81285120000, 
+                                "time" : 80579520000, 
+                                "value" : 1.77777793173658, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 81732000000, 
+                                "time" : 81285120000, 
+                                "value" : 1.77777791588788, 
+                                "duration" : 446880000
+                              }, 
+                              {
+                                "endTime" : 82296480000, 
+                                "time" : 81732000000, 
+                                "value" : 1.77777790003919, 
+                                "duration" : 564480000
+                              }, 
+                              {
+                                "endTime" : 85377600000, 
+                                "time" : 84672000000, 
+                                "value" : 1.7777778841905, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 85848000000, 
+                                "time" : 85377600000, 
+                                "value" : 1.77777801098004, 
+                                "duration" : 470400000
+                              }, 
+                              {
+                                "endTime" : 88317600000, 
+                                "time" : 87612000000, 
+                                "value" : 1.77777785249313, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 89893440000, 
+                                "time" : 89187840000, 
+                                "value" : 1.77777797928267, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 91234080000, 
+                                "time" : 90528480000, 
+                                "value" : 1.77777796343397, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 91586880000, 
+                                "time" : 91234080000, 
+                                "value" : 1.77777794758528, 
+                                "duration" : 352800000
+                              }, 
+                              {
+                                "endTime" : 91869120000, 
+                                "time" : 91586880000, 
+                                "value" : 1.77777793173659, 
+                                "duration" : 282240000
+                              }, 
+                              {
+                                "endTime" : 92410080000, 
+                                "time" : 91869120000, 
+                                "value" : 1.7777779158879, 
+                                "duration" : 540960000
+                              }, 
+                              {
+                                "endTime" : 92739360000, 
+                                "time" : 92410080000, 
+                                "value" : 1.77777790003921, 
+                                "duration" : 329280000
+                              }, 
+                              {
+                                "endTime" : 93256800000, 
+                                "time" : 92739360000, 
+                                "value" : 1.77777788419051, 
+                                "duration" : 517440000
+                              }, 
+                              {
+                                "endTime" : 96573120000, 
+                                "time" : 95867520000, 
+                                "value" : 1.77777801098005, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 98831040000, 
+                                "time" : 98125440000, 
+                                "value" : 1.77777785249314, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 101653440000, 
+                                "time" : 100947840000, 
+                                "value" : 1.77777769400625, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 102500160000, 
+                                "time" : 101794560000, 
+                                "value" : 1.77777782079577, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 103229280000, 
+                                "time" : 102523680000, 
+                                "value" : 1.77777794758531, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 104805120000, 
+                                "time" : 104099520000, 
+                                "value" : 1.77777793173661, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 105769440000, 
+                                "time" : 105063840000, 
+                                "value" : 1.77777791588792, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 109085760000, 
+                                "time" : 108380160000, 
+                                "value" : 1.77777790003923, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 110661600000, 
+                                "time" : 109956000000, 
+                                "value" : 1.77777788419054, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 120351840000, 
+                                "time" : 119646240000, 
+                                "value" : 1.77777786834185, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 120798720000, 
+                                "time" : 120351840000, 
+                                "value" : 1.77777799513139, 
+                                "duration" : 446880000
+                              }, 
+                              {
+                                "endTime" : 122304000000, 
+                                "time" : 121598400000, 
+                                "value" : 1.77777797928269, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 124303200000, 
+                                "time" : 123597600000, 
+                                "value" : 1.777777963434, 
+                                "duration" : 705600000
+                              }, 
+                              {
+                                "endTime" : 128372160000, 
+                                "time" : 127666560000, 
+                                "value" : 1.77777794758531, 
+                                "duration" : 705600000
+                              }
+                            ]
+                          }, 
+                          "scale2" : {
+                            "type" : "double", 
+                            "defaultValue" : 1.0, 
+                            "interp" : "eioe"
+                          }, 
+                          "geometryCrop0" : {
+                            "type" : "double", 
+                            "defaultValue" : 0.0, 
+                            "interp" : "eioe"
+                          }, 
+                          "geometryCrop1" : {
+                            "type" : "double", 
+                            "defaultValue" : 0.0, 
+                            "interp" : "eioe"
+                          }, 
+                          "geometryCrop2" : {
+                            "type" : "double", 
+                            "defaultValue" : 0.0, 
+                            "interp" : "eioe"
+                          }, 
+                          "geometryCrop3" : {
+                            "type" : "double", 
+                            "defaultValue" : 0.0, 
+                            "interp" : "eioe"
+                          }
+                        }, 
+                        "effects" : [
+                        ], 
+                        "start" : 0, 
+                        "duration" : 132394080000, 
+                        "mediaStart" : 0, 
+                        "mediaDuration" : 132394080000, 
+                        "scalar" : 1, 
+                        "animationTracks" : {
+                          "visual" : [
+                            {
+                              "endTime" : 705600000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 1740480000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 3528000000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 4021920000, 
+                              "duration" : 493920000
+                            }, 
+                            {
+                              "endTime" : 4915680000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 5433120000, 
+                              "duration" : 517440000
+                            }, 
+                            {
+                              "endTime" : 6115200000, 
+                              "duration" : 682080000
+                            }, 
+                            {
+                              "endTime" : 6538560000, 
+                              "duration" : 423360000
+                            }, 
+                            {
+                              "endTime" : 7150080000, 
+                              "duration" : 611520000
+                            }, 
+                            {
+                              "endTime" : 8984640000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 9901920000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 11124960000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 11901120000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 13030080000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 14958720000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 16228800000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 16628640000, 
+                              "duration" : 399840000
+                            }, 
+                            {
+                              "endTime" : 17404800000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 17875200000, 
+                              "duration" : 470400000
+                            }, 
+                            {
+                              "endTime" : 20462400000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 23590560000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 24108000000, 
+                              "duration" : 517440000
+                            }, 
+                            {
+                              "endTime" : 31822560000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 36197280000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 36926400000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 38031840000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 40430880000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 42453600000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 44923200000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 47228160000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 47957280000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 56471520000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 61010880000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 64468320000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 65032800000, 
+                              "duration" : 564480000
+                            }, 
+                            {
+                              "endTime" : 67667040000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 70371840000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 70936320000, 
+                              "duration" : 564480000
+                            }, 
+                            {
+                              "endTime" : 71453760000, 
+                              "duration" : 517440000
+                            }, 
+                            {
+                              "endTime" : 72088800000, 
+                              "duration" : 635040000
+                            }, 
+                            {
+                              "endTime" : 72559200000, 
+                              "duration" : 470400000
+                            }, 
+                            {
+                              "endTime" : 73852800000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 74205600000, 
+                              "duration" : 352800000
+                            }, 
+                            {
+                              "endTime" : 76040160000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 78392160000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 80250240000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 81285120000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 81732000000, 
+                              "duration" : 446880000
+                            }, 
+                            {
+                              "endTime" : 82296480000, 
+                              "duration" : 564480000
+                            }, 
+                            {
+                              "endTime" : 85377600000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 85848000000, 
+                              "duration" : 470400000
+                            }, 
+                            {
+                              "endTime" : 88317600000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 89893440000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 91234080000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 91586880000, 
+                              "duration" : 352800000
+                            }, 
+                            {
+                              "endTime" : 91869120000, 
+                              "duration" : 282240000
+                            }, 
+                            {
+                              "endTime" : 92410080000, 
+                              "duration" : 540960000
+                            }, 
+                            {
+                              "endTime" : 92739360000, 
+                              "duration" : 329280000
+                            }, 
+                            {
+                              "endTime" : 93256800000, 
+                              "duration" : 517440000
+                            }, 
+                            {
+                              "endTime" : 96573120000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 98831040000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 101653440000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 102500160000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 103229280000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 104805120000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 105769440000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 109085760000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 110661600000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 120351840000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 120798720000, 
+                              "duration" : 446880000
+                            }, 
+                            {
+                              "endTime" : 122304000000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 124303200000, 
+                              "duration" : 705600000
+                            }, 
+                            {
+                              "endTime" : 128372160000, 
+                              "duration" : 705600000
+                            }
+                          ]
+                        }
+                      }, 
+                    "audio" : 
+                      {
+                        "id" : 13, 
+                        "_type" : "AMFile", 
+                        "src" : 1, 
+                        "trackNumber" : 1, 
+                        "attributes" : {
+                          "ident" : "", 
+                          "gain" : 1.0, 
+                          "mixToMono" : false, 
+                          "loudnessNormalization" : true, 
+                          "sourceFileOffset" : 0
+                        }, 
+                        "channelNumber" : "0,1", 
+                        "parameters" : {
+                        }, 
+                        "effects" : [
+                        ], 
+                        "start" : 0, 
+                        "duration" : 132394080000, 
+                        "mediaStart" : 0, 
+                        "mediaDuration" : 132394080000, 
+                        "scalar" : 1, 
+                        "animationTracks" : {
+                        }
+                      }, 
+                    "effects" : [
+                    ], 
+                    "start" : 0, 
+                    "duration" : 132394080000, 
+                    "mediaStart" : 0, 
+                    "mediaDuration" : 132394080000, 
+                    "scalar" : 1, 
+                    "metadata" : {
+                      "audiateLinkedSession" : "", 
+                      "clipSpeedAttribute" : 
+                        {
+                          "type" : "bool", 
+                          "value" : false
+                        }, 
+                      "colorAttribute" : 
+                        {
+                          "type" : "color", 
+                          "value" : [ 0, 0, 0, 0]
+                        }, 
+                      "default-anchor0" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-anchor1" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-anchor2" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-height" : 
+                        {
+                          "type" : "double", 
+                          "value" : 1080.0
+                        }, 
+                      "default-rotation0" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-rotation1" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-rotation2" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-scale0" : 
+                        {
+                          "type" : "double", 
+                          "value" : 1.0
+                        }, 
+                      "default-scale1" : 
+                        {
+                          "type" : "double", 
+                          "value" : 1.0
+                        }, 
+                      "default-scale2" : 
+                        {
+                          "type" : "double", 
+                          "value" : 1.0
+                        }, 
+                      "default-shear0" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-shear1" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-shear2" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-translation0" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-translation1" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-translation2" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-width" : 
+                        {
+                          "type" : "double", 
+                          "value" : 1920.0
+                        }
+                    }
+                  }
+                ], 
+                "parameters" : {
+                }
+              }, 
+              {
+                "trackIndex" : 1, 
+                "medias" : [
+                  {
+                    "id" : 14, 
+                    "_type" : "VMFile", 
+                    "src" : 1, 
+                    "trackNumber" : 0, 
+                    "attributes" : {
+                      "ident" : "C450 - Clásico “Hípica Nacional” - Princesa Fina - Hipódromo La Rinconada - Reunión 38 - 2026"
+                    }, 
+                    "parameters" : {
+                      "translation0" : {
+                        "type" : "double", 
+                        "defaultValue" : 1218.33797239519, 
+                        "interp" : "eioe"
+                      }, 
+                      "translation1" : {
+                        "type" : "double", 
+                        "defaultValue" : 19.999999999999, 
+                        "interp" : "eioe"
+                      }, 
+                      "scale0" : {
+                        "type" : "double", 
+                        "defaultValue" : 1.928319320497, 
+                        "interp" : "eioe"
+                      }, 
+                      "scale1" : {
+                        "type" : "double", 
+                        "defaultValue" : 1.82378311768331, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop0" : {
+                        "type" : "double", 
+                        "defaultValue" : 48.1500000000002, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop1" : {
+                        "type" : "double", 
+                        "defaultValue" : 849.375, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop2" : {
+                        "type" : "double", 
+                        "defaultValue" : 1311.77678571429, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop3" : {
+                        "type" : "double", 
+                        "defaultValue" : 27.7500000000007, 
+                        "interp" : "eioe"
+                      }
+                    }, 
+                    "effects" : [
+                    ], 
+                    "start" : 6773760000, 
+                    "duration" : 82649280000, 
+                    "mediaStart" : 6773760000, 
+                    "mediaDuration" : 82649280000, 
+                    "scalar" : 1, 
+                    "metadata" : {
+                      "audiateLinkedSession" : "", 
+                      "clipSpeedAttribute" : 
+                        {
+                          "type" : "bool", 
+                          "value" : false
+                        }, 
+                      "colorAttribute" : 
+                        {
+                          "type" : "color", 
+                          "value" : [ 0, 0, 0, 0]
+                        }, 
+                      "default-anchor0" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-anchor1" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-anchor2" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-geometryCrop0" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-geometryCrop1" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-geometryCrop2" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-geometryCrop3" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-height" : 
+                        {
+                          "type" : "double", 
+                          "value" : 1080.0
+                        }, 
+                      "default-rotation0" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-rotation1" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-rotation2" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-scale0" : 
+                        {
+                          "type" : "double", 
+                          "value" : 1.0
+                        }, 
+                      "default-scale1" : 
+                        {
+                          "type" : "double", 
+                          "value" : 1.0
+                        }, 
+                      "default-scale2" : 
+                        {
+                          "type" : "double", 
+                          "value" : 1.0
+                        }, 
+                      "default-shear0" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-shear1" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-shear2" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-translation0" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-translation1" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-translation2" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-width" : 
+                        {
+                          "type" : "double", 
+                          "value" : 1920.0
+                        }
+                    }, 
+                    "animationTracks" : {
+                    }
+                  }
+                ], 
+                "transitions" : [
+                  {
+                    "name" : "Arrows", 
+                    "duration" : 705600000, 
+                    "rightMedia" : 14, 
+                    "attributes" : {
+                      "FlipX" : false, 
+                      "bypass" : false, 
+                      "reverse" : false, 
+                      "trivial" : false, 
+                      "useAudioPreRoll" : true, 
+                      "useVisualPreRoll" : true
+                    }
+                  }, 
+                  {
+                    "name" : "Arrows", 
+                    "duration" : 705600000, 
+                    "leftMedia" : 14, 
+                    "attributes" : {
+                      "FlipX" : false, 
+                      "bypass" : false, 
+                      "reverse" : false, 
+                      "trivial" : false, 
+                      "useAudioPreRoll" : true, 
+                      "useVisualPreRoll" : true
+                    }
+                  }
+                ], 
+                "parameters" : {
+                }
+              }, 
+              {
+                "trackIndex" : 2, 
+                "medias" : [
+                  {
+                    "id" : 15, 
+                    "_type" : "VMFile", 
+                    "src" : 2, 
+                    "trackNumber" : 0, 
+                    "attributes" : {
+                      "ident" : "Cintillo-Tricolor_Jhan-Magallanes_1920x200"
+                    }, 
+                    "parameters" : {
+                      "translation0" : {
+                        "type" : "double", 
+                        "defaultValue" : -1.54898316395702e-12, 
+                        "interp" : "eioe"
+                      }, 
+                      "translation1" : {
+                        "type" : "double", 
+                        "defaultValue" : -110.71428571429, 
+                        "interp" : "eioe"
+                      }, 
+                      "scale0" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.5625, 
+                        "interp" : "eioe"
+                      }, 
+                      "scale1" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.5625, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop0" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop1" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop2" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop3" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }
+                    }, 
+                    "effects" : [
+                    ], 
+                    "start" : 19404000000, 
+                    "duration" : 26271840000, 
+                    "mediaStart" : 0, 
+                    "mediaDuration" : 26271840000, 
+                    "scalar" : 1, 
+                    "metadata" : {
+                      "audiateLinkedSession" : "", 
+                      "clipSpeedAttribute" : 
+                        {
+                          "type" : "bool", 
+                          "value" : false
+                        }, 
+                      "colorAttribute" : 
+                        {
+                          "type" : "color", 
+                          "value" : [ 0, 0, 0, 0]
+                        }, 
+                      "default-height" : 
+                        {
+                          "type" : "double", 
+                          "value" : 112.5
+                        }, 
+                      "default-translation0" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-translation1" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-translation2" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-width" : 
+                        {
+                          "type" : "double", 
+                          "value" : 1080.0
+                        }
+                    }, 
+                    "animationTracks" : {
+                    }
+                  }, 
+                  {
+                    "id" : 16, 
+                    "_type" : "VMFile", 
+                    "src" : 2, 
+                    "trackNumber" : 0, 
+                    "attributes" : {
+                      "ident" : "Cintillo-Tricolor_Jhan-Magallanes_1920x200"
+                    }, 
+                    "parameters" : {
+                      "translation0" : {
+                        "type" : "double", 
+                        "defaultValue" : -1.74793512996985e-12, 
+                        "interp" : "eioe"
+                      }, 
+                      "translation1" : {
+                        "type" : "double", 
+                        "defaultValue" : -110.71428571429, 
+                        "interp" : "eioe"
+                      }, 
+                      "scale0" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.5625, 
+                        "interp" : "eioe"
+                      }, 
+                      "scale1" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.5625, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop0" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop1" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop2" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop3" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }
+                    }, 
+                    "effects" : [
+                    ], 
+                    "start" : 45675840000, 
+                    "duration" : 22179360000, 
+                    "mediaStart" : 0, 
+                    "mediaDuration" : 22179360000, 
+                    "scalar" : 1, 
+                    "metadata" : {
+                      "audiateLinkedSession" : "", 
+                      "clipSpeedAttribute" : 
+                        {
+                          "type" : "bool", 
+                          "value" : false
+                        }, 
+                      "colorAttribute" : 
+                        {
+                          "type" : "color", 
+                          "value" : [ 0, 0, 0, 0]
+                        }, 
+                      "default-height" : 
+                        {
+                          "type" : "double", 
+                          "value" : 112.5
+                        }, 
+                      "default-translation0" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-translation1" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-translation2" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-width" : 
+                        {
+                          "type" : "double", 
+                          "value" : 1080.0
+                        }
+                    }, 
+                    "animationTracks" : {
+                    }
+                  }
+                ], 
+                "transitions" : [
+                  {
+                    "name" : "Arrows", 
+                    "duration" : 705600000, 
+                    "rightMedia" : 15, 
+                    "attributes" : {
+                      "FlipX" : false, 
+                      "bypass" : false, 
+                      "reverse" : false, 
+                      "trivial" : false, 
+                      "useAudioPreRoll" : true, 
+                      "useVisualPreRoll" : true
+                    }
+                  }, 
+                  {
+                    "name" : "Arrows", 
+                    "duration" : 705600000, 
+                    "leftMedia" : 16, 
+                    "attributes" : {
+                      "FlipX" : false, 
+                      "bypass" : false, 
+                      "reverse" : false, 
+                      "trivial" : false, 
+                      "useAudioPreRoll" : true, 
+                      "useVisualPreRoll" : true
+                    }
+                  }
+                ], 
+                "parameters" : {
+                }
+              }, 
+              {
+                "trackIndex" : 3, 
+                "medias" : [
+                  {
+                    "id" : 17, 
+                    "_type" : "IMFile", 
+                    "src" : 3, 
+                    "trackNumber" : 0, 
+                    "trimStartSum" : 0, 
+                    "attributes" : {
+                      "ident" : "Tricolor-Hipico_R38_2026-09-27_C09"
+                    }, 
+                    "parameters" : {
+                      "translation0" : {
+                        "type" : "double", 
+                        "defaultValue" : 2.21689333557151e-12, 
+                        "interp" : "eioe"
+                      }, 
+                      "translation1" : {
+                        "type" : "double", 
+                        "defaultValue" : 774.999999999999, 
+                        "interp" : "eioe"
+                      }, 
+                      "scale0" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.27, 
+                        "interp" : "eioe"
+                      }, 
+                      "scale1" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.27, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop0" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop1" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop2" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop3" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }
+                    }, 
+                    "effects" : [
+                    ], 
+                    "start" : 4445280000, 
+                    "duration" : 14958720000, 
+                    "mediaStart" : 0, 
+                    "mediaDuration" : 1, 
+                    "scalar" : 1, 
+                    "metadata" : {
+                      "audiateLinkedSession" : "", 
+                      "clipSpeedAttribute" : 
+                        {
+                          "type" : "bool", 
+                          "value" : false
+                        }, 
+                      "colorAttribute" : 
+                        {
+                          "type" : "color", 
+                          "value" : [ 0, 0, 0, 0]
+                        }, 
+                      "default-height" : 
+                        {
+                          "type" : "double", 
+                          "value" : 194.4
+                        }, 
+                      "default-translation0" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-translation1" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-translation2" : 
+                        {
+                          "type" : "double", 
+                          "value" : 0.0
+                        }, 
+                      "default-width" : 
+                        {
+                          "type" : "double", 
+                          "value" : 1080.0
+                        }
+                    }, 
+                    "animationTracks" : {
+                    }
+                  }, 
+                  {
+                    "id" : 18, 
+                    "_type" : "IMFile", 
+                    "src" : 9, 
+                    "trackNumber" : 0, 
+                    "trimStartSum" : 0, 
+                    "attributes" : {
+                      "ident" : "Tricolor-Hipico_R38_2026-09-27_C09 (1)"
+                    }, 
+                    "parameters" : {
+                      "translation0" : {
+                        "type" : "double", 
+                        "defaultValue" : 2.21689333557151e-12, 
+                        "interp" : "eioe"
+                      }, 
+                      "translation1" : {
+                        "type" : "double", 
+                        "defaultValue" : 774.999999999999, 
+                        "interp" : "eioe"
+                      }, 
+                      "scale0" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.27, 
+                        "interp" : "eioe"
+                      }, 
+                      "scale1" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.27, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop0" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop1" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop2" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop3" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }
+                    }, 
+                    "effects" : [
+                    ], 
+                    "start" : 19404000000, 
+                    "duration" : 16699200000, 
+                    "mediaStart" : 0, 
+                    "mediaDuration" : 1, 
+                    "scalar" : 1, 
+                    "metadata" : {
+                      "audiateLinkedSession" : "", 
+                      "clipSpeedAttribute" : 
+                        {
+                          "type" : "bool", 
+                          "value" : false
+                        }, 
+                      "colorAttribute" : 
+                        {
+                          "type" : "color", 
+                          "value" : [ 0, 0, 0, 0]
+                        }
+                    }, 
+                    "animationTracks" : {
+                    }
+                  }, 
+                  {
+                    "id" : 19, 
+                    "_type" : "IMFile", 
+                    "src" : 8, 
+                    "trackNumber" : 0, 
+                    "trimStartSum" : 0, 
+                    "attributes" : {
+                      "ident" : "Tricolor-Hipico_R38_2026-09-27_C09 (2)"
+                    }, 
+                    "parameters" : {
+                      "translation0" : {
+                        "type" : "double", 
+                        "defaultValue" : 2.21689333557151e-12, 
+                        "interp" : "eioe"
+                      }, 
+                      "translation1" : {
+                        "type" : "double", 
+                        "defaultValue" : 774.999999999999, 
+                        "interp" : "eioe"
+                      }, 
+                      "scale0" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.27, 
+                        "interp" : "eioe"
+                      }, 
+                      "scale1" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.27, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop0" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop1" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop2" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop3" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }
+                    }, 
+                    "effects" : [
+                    ], 
+                    "start" : 36103200000, 
+                    "duration" : 17710560000, 
+                    "mediaStart" : 0, 
+                    "mediaDuration" : 1, 
+                    "scalar" : 1, 
+                    "metadata" : {
+                      "audiateLinkedSession" : "", 
+                      "clipSpeedAttribute" : 
+                        {
+                          "type" : "bool", 
+                          "value" : false
+                        }, 
+                      "colorAttribute" : 
+                        {
+                          "type" : "color", 
+                          "value" : [ 0, 0, 0, 0]
+                        }
+                    }, 
+                    "animationTracks" : {
+                    }
+                  }, 
+                  {
+                    "id" : 20, 
+                    "_type" : "IMFile", 
+                    "src" : 7, 
+                    "trackNumber" : 0, 
+                    "trimStartSum" : 0, 
+                    "attributes" : {
+                      "ident" : "Tricolor-Hipico_R38_2026-09-27_C09 (3)"
+                    }, 
+                    "parameters" : {
+                      "translation0" : {
+                        "type" : "double", 
+                        "defaultValue" : 2.21689333557151e-12, 
+                        "interp" : "eioe"
+                      }, 
+                      "translation1" : {
+                        "type" : "double", 
+                        "defaultValue" : 774.999999999999, 
+                        "interp" : "eioe"
+                      }, 
+                      "scale0" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.27, 
+                        "interp" : "eioe"
+                      }, 
+                      "scale1" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.27, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop0" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop1" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop2" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop3" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }
+                    }, 
+                    "effects" : [
+                    ], 
+                    "start" : 53813760000, 
+                    "duration" : 19404000000, 
+                    "mediaStart" : 0, 
+                    "mediaDuration" : 1, 
+                    "scalar" : 1, 
+                    "metadata" : {
+                      "audiateLinkedSession" : "", 
+                      "clipSpeedAttribute" : 
+                        {
+                          "type" : "bool", 
+                          "value" : false
+                        }, 
+                      "colorAttribute" : 
+                        {
+                          "type" : "color", 
+                          "value" : [ 0, 0, 0, 0]
+                        }
+                    }, 
+                    "animationTracks" : {
+                    }
+                  }, 
+                  {
+                    "id" : 21, 
+                    "_type" : "IMFile", 
+                    "src" : 6, 
+                    "trackNumber" : 0, 
+                    "trimStartSum" : 0, 
+                    "attributes" : {
+                      "ident" : "Tricolor-Hipico_R38_2026-09-27_C09 (4)"
+                    }, 
+                    "parameters" : {
+                      "translation0" : {
+                        "type" : "double", 
+                        "defaultValue" : 2.21689333557151e-12, 
+                        "interp" : "eioe"
+                      }, 
+                      "translation1" : {
+                        "type" : "double", 
+                        "defaultValue" : 774.999999999999, 
+                        "interp" : "eioe"
+                      }, 
+                      "scale0" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.27, 
+                        "interp" : "eioe"
+                      }, 
+                      "scale1" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.27, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop0" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop1" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop2" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop3" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }
+                    }, 
+                    "effects" : [
+                    ], 
+                    "start" : 73217760000, 
+                    "duration" : 18933600000, 
+                    "mediaStart" : 0, 
+                    "mediaDuration" : 1, 
+                    "scalar" : 1, 
+                    "metadata" : {
+                      "audiateLinkedSession" : "", 
+                      "clipSpeedAttribute" : 
+                        {
+                          "type" : "bool", 
+                          "value" : false
+                        }, 
+                      "colorAttribute" : 
+                        {
+                          "type" : "color", 
+                          "value" : [ 0, 0, 0, 0]
+                        }
+                    }, 
+                    "animationTracks" : {
+                    }
+                  }, 
+                  {
+                    "id" : 22, 
+                    "_type" : "IMFile", 
+                    "src" : 4, 
+                    "trackNumber" : 0, 
+                    "trimStartSum" : 0, 
+                    "attributes" : {
+                      "ident" : "Tricolor-Hipico_R38_2026-09-27_C09_ganador"
+                    }, 
+                    "parameters" : {
+                      "translation0" : {
+                        "type" : "double", 
+                        "defaultValue" : 2.21689333557151e-12, 
+                        "interp" : "eioe"
+                      }, 
+                      "translation1" : {
+                        "type" : "double", 
+                        "defaultValue" : 774.999999999999, 
+                        "interp" : "eioe"
+                      }, 
+                      "scale0" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.27, 
+                        "interp" : "eioe"
+                      }, 
+                      "scale1" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.27, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop0" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop1" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop2" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }, 
+                      "geometryCrop3" : {
+                        "type" : "double", 
+                        "defaultValue" : 0.0, 
+                        "interp" : "eioe"
+                      }
+                    }, 
+                    "effects" : [
+                    ], 
+                    "start" : 92151360000, 
+                    "duration" : 40242720000, 
+                    "mediaStart" : 0, 
+                    "mediaDuration" : 1, 
+                    "scalar" : 1, 
+                    "metadata" : {
+                      "audiateLinkedSession" : "", 
+                      "clipSpeedAttribute" : 
+                        {
+                          "type" : "bool", 
+                          "value" : false
+                        }, 
+                      "colorAttribute" : 
+                        {
+                          "type" : "color", 
+                          "value" : [ 0, 0, 0, 0]
+                        }
+                    }, 
+                    "animationTracks" : {
+                    }
+                  }
+                ], 
+                "transitions" : [
+                  {
+                    "name" : "Arrows", 
+                    "duration" : 705600000, 
+                    "rightMedia" : 17, 
+                    "attributes" : {
+                      "FlipX" : false, 
+                      "bypass" : false, 
+                      "reverse" : false, 
+                      "trivial" : false, 
+                      "useAudioPreRoll" : true, 
+                      "useVisualPreRoll" : true
+                    }
+                  }, 
+                  {
+                    "name" : "Arrows", 
+                    "duration" : 352800000, 
+                    "leftMedia" : 17, 
+                    "rightMedia" : 18, 
+                    "attributes" : {
+                      "FlipX" : false, 
+                      "bypass" : false, 
+                      "reverse" : false, 
+                      "trivial" : false, 
+                      "useAudioPreRoll" : true, 
+                      "useVisualPreRoll" : true
+                    }
+                  }, 
+                  {
+                    "name" : "Arrows", 
+                    "duration" : 352800000, 
+                    "leftMedia" : 18, 
+                    "rightMedia" : 19, 
+                    "attributes" : {
+                      "FlipX" : false, 
+                      "bypass" : false, 
+                      "reverse" : false, 
+                      "trivial" : false, 
+                      "useAudioPreRoll" : true, 
+                      "useVisualPreRoll" : true
+                    }
+                  }, 
+                  {
+                    "name" : "Arrows", 
+                    "duration" : 352800000, 
+                    "leftMedia" : 19, 
+                    "rightMedia" : 20, 
+                    "attributes" : {
+                      "FlipX" : false, 
+                      "bypass" : false, 
+                      "reverse" : false, 
+                      "trivial" : false, 
+                      "useAudioPreRoll" : true, 
+                      "useVisualPreRoll" : true
+                    }
+                  }, 
+                  {
+                    "name" : "Arrows", 
+                    "duration" : 352800000, 
+                    "leftMedia" : 20, 
+                    "rightMedia" : 21, 
+                    "attributes" : {
+                      "FlipX" : false, 
+                      "bypass" : false, 
+                      "reverse" : false, 
+                      "trivial" : false, 
+                      "useAudioPreRoll" : true, 
+                      "useVisualPreRoll" : true
+                    }
+                  }, 
+                  {
+                    "name" : "Arrows", 
+                    "duration" : 352800000, 
+                    "leftMedia" : 21, 
+                    "rightMedia" : 22, 
+                    "attributes" : {
+                      "FlipX" : false, 
+                      "bypass" : false, 
+                      "reverse" : false, 
+                      "trivial" : false, 
+                      "useAudioPreRoll" : true, 
+                      "useVisualPreRoll" : true
+                    }
+                  }, 
+                  {
+                    "name" : "Arrows", 
+                    "duration" : 705600000, 
+                    "leftMedia" : 22, 
+                    "attributes" : {
+                      "FlipX" : false, 
+                      "bypass" : false, 
+                      "reverse" : false, 
+                      "trivial" : false, 
+                      "useAudioPreRoll" : true, 
+                      "useVisualPreRoll" : true
+                    }
+                  }
+                ], 
+                "parameters" : {
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }, 
+    "trackAttributes" : [
+      {
+        "ident" : "", 
+        "audioMuted" : false, 
+        "videoHidden" : false, 
+        "magnetic" : false, 
+        "matte" : 0, 
+        "solo" : false, 
+        "metadata" : {
+          "IsLocked" : "False", 
+          "WinTrackHeight" : "78"
+        }
+      }, 
+      {
+        "ident" : "", 
+        "audioMuted" : false, 
+        "videoHidden" : false, 
+        "magnetic" : false, 
+        "matte" : 0, 
+        "solo" : false, 
+        "metadata" : {
+          "IsLocked" : "True", 
+          "WinTrackHeight" : "78"
+        }
+      }, 
+      {
+        "ident" : "", 
+        "audioMuted" : false, 
+        "videoHidden" : false, 
+        "magnetic" : false, 
+        "matte" : 0, 
+        "solo" : false, 
+        "metadata" : {
+          "IsLocked" : "True", 
+          "WinTrackHeight" : "78"
+        }
+      }, 
+      {
+        "ident" : "", 
+        "audioMuted" : false, 
+        "videoHidden" : false, 
+        "magnetic" : false, 
+        "matte" : 0, 
+        "solo" : false, 
+        "metadata" : {
+          "IsLocked" : "True", 
+          "WinTrackHeight" : "78"
+        }
+      }
+    ], 
+    "parameters" : {
+    }, 
+    "captionAttributes" : {
+      "enabled" : true, 
+      "fontName" : "Arial", 
+      "fontSize" : 39, 
+      "backgroundColor" : [ 0, 0, 0, 191], 
+      "foregroundColor" : [ 255, 255, 255, 255], 
+      "lang" : "en", 
+      "alignment" : 0, 
+      "defaultFontSize" : true, 
+      "opacity" : 0.5, 
+      "backgroundEnabled" : true, 
+      "backgroundOnlyAroundText" : true
+    }, 
+    "gain" : 1.0, 
+    "legacyAttenuateAudioMix" : false, 
+    "backgroundColor" : [ 0, 0, 0, 255]
+  }, 
+  "metadata" : {
+    "AutoSaveFile" : "C:\\Users\\gabri\\AppData\\Local\\TechSmith\\Camtasia\\Auto-Saves\\Proyecto sin título1dbd9df.autosave.tscproj", 
+    "CanvasZoom" : 
+      {
+        "type" : "int", 
+        "value" : 28
+      }, 
+    "Date" : "sábado-10-03 07:00:33 PM", 
+    "Fit" : 
+      {
+        "type" : "int", 
+        "value" : 1
+      }, 
+    "HardlinkProjectMedia" : 
+      {
+        "type" : "bool", 
+        "value" : false
+      }, 
+    "IsAutoSave" : 
+      {
+        "type" : "bool", 
+        "value" : false
+      }, 
+    "IsStandalone" : 
+      {
+        "type" : "bool", 
+        "value" : true
+      }, 
+    "Language" : "ESN", 
+    "ProfileName" : "", 
+    "ProjectDimensionsChanged" : "1", 
+    "ProjectThumbnail" : "iVBORw0KGgoAAAANSUhEUgAAAMoAAAFoCAYAAAAWxmT5AAAAAXNSR0IArs4c6QAAAARnQU1BAACx\r\njwv8YQUAAAAJcEhZcwAAEnQAABJ0Ad5mH3gAAAMYSURBVHhe7cghAQAgAASx718aPCcoMDGzbTvA\r\nVwKoBFAJoBJAJYBKAJUAKgFUAqgEUAmgEkAlgEoAlQAqAVQCqARQCaASQCWASgCVACoBVAKoBFAJ\r\noBJAJYBKAJUAKgFUAqgEUAmgEkAlgEoAlQAqAVQCqARQCaASQCWASgCVACoBVAKoBFAJoBJAJYBK\r\nAJUAKgFUAqgEUAmgEkAlgEoAlQAqAVQCqARQCaASQCWASgCVACoBVAKoBFAJoBJAJYBKAJUAKgFU\r\nAqgEUAmgEkAlgEoAlQAqAVQCqARQCaASQCWASgCVACoBVAKoBFAJoBJAJYBKAJUAKgFUAqgEUAmg\r\nEkAlgEoAlQAqAVQCqARQCaASQCWASgCVACoBVAKoBFAJoBJAJYBKAJUAKgFUAqgEUAmgEkAlgEoA\r\nlQAqAVQCqARQCaASQCWASgCVACoBVAKoBFAJoBJAJYBKAJUAKgFUAqgEUAmgEkAlgEoAlQAqAVQC\r\nqARQCaASQCWASgCVACoBVAKoBFAJoBJAJYBKAJUAKgFUAqgEUAmgEkAlgEoAlQAqAVQCqARQCaAS\r\nQCWASgCVACoBVAKoBFAJoBJAJYBKAJUAKgFUAqgEUAmgEkAlgEoAlQAqAVQCqARQCaASQCWASgCV\r\nACoBVAKoBFAJoBJAJYBKAJUAKgFUAqgEUAmgEkAlgEoAlQAqAVQCqARQCaASQCWASgCVACoBVAKo\r\nBFAJoBJAJYBKAJUAKgFUAqgEUAmgEkAlgEoAlQAqAVQCqARQCaASQCWASgCVACoBVAKoBFAJoBJA\r\nJYBKAJUAKgFUAqgEUAmgEkAlgEoAlQAqAVQCqARQCaASQCWASgCVACoBVAKoBFAJoBJAJYBKAJUA\r\nKgFUAqgEUAmgEkAlgEoAlQAqAVQCqARQCaASQCWASgCVACoBVAKoBFAJoBJAJYBKAJUAKgFUAqgE\r\nUAmgEkAlgEoAlQAqAVQCqARQCaASQCWASgCVACoBVAKoBFAJoBJAJYBKAJUAKgFUAqgEUAmgEkAl\r\ngEoAlQAqAVQCqARQCaASQCWASgCVAB4XV+0EhmZHuVsAAAAASUVORK5CYII=", 
+    "RulerGuidesX" : [], 
+    "RulerGuidesY" : [], 
+    "RulerShowing" : 
+      {
+        "type" : "bool", 
+        "value" : false
+      }, 
+    "Title" : "450 - 2026", 
+    "audioNarrationNotes" : "", 
+    "calloutStyle" : "Basic"
+  }
+}
