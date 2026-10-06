@@ -50,6 +50,14 @@ def es_cintillo(p):
     return "cintillo" in os.path.basename(p).lower()
 
 
+def es_generado(p):
+    """Cosas que produce este script (vista previa del foco, proyectos ya armados): no son la carrera."""
+    if "vista previa" in os.path.basename(p).lower() or " - foco" in os.path.basename(p).lower():
+        return True
+    partes = os.path.abspath(p).lower().split(os.sep)
+    return any(parte.endswith((".tscproj", ".camproj")) for parte in partes[:-1])
+
+
 def rango_banner(nombre):
     """0 = sin tiempos, 1..n = parciales, GANADOR = ganador."""
     n = os.path.splitext(os.path.basename(nombre))[0].lower()
@@ -205,14 +213,16 @@ def videos_en(carpetas):
     for d in carpetas:
         if os.path.isdir(d):
             cand += [os.path.join(d, f) for f in os.listdir(d)
-                     if ext_de(f) in VID_EXT and not es_cintillo(f)]
+                     if ext_de(f) in VID_EXT and not es_cintillo(f) and not es_generado(f)]
     return cand
 
 
 def buscar_video(rutas, carpetas, numero):
-    """Video de la carrera: el que se pasó, o el de la carpeta de la carrera, o el que tenga C<numero> en Descargas."""
+    """Video de la carrera: el que se pasó, o el de la carpeta de la carrera, o el que tenga C<numero> en Descargas.
+    Se ignoran las vistas previas y los videos dentro de proyectos ya creados (si no, se analizaría
+    la vista previa del foco en vez de la carrera)."""
     for r in rutas:
-        if os.path.isfile(r) and ext_de(r) in VID_EXT and not es_cintillo(r):
+        if os.path.isfile(r) and ext_de(r) in VID_EXT and not es_cintillo(r) and not es_generado(r):
             return r
     cand = videos_en(carpetas)
     if len(cand) > 1 and numero:
@@ -224,7 +234,7 @@ def buscar_video(rutas, carpetas, numero):
     for d in (os.path.join(descargas, "Video"), descargas):
         if os.path.isdir(d):
             cand += [os.path.join(d, f) for f in os.listdir(d)
-                     if ext_de(f) in VID_EXT and not es_cintillo(f)]
+                     if ext_de(f) in VID_EXT and not es_cintillo(f) and not es_generado(f)]
     if numero:
         por_numero = [c for c in cand if re.search(r"(^|[^0-9])C?%s([^0-9]|$)" % numero, os.path.basename(c))]
         if por_numero:
@@ -329,10 +339,158 @@ def detectar_parciales(video, n):
 
 def parciales_de(nuevos):
     """detectar_parciales una sola vez por carrera (lo usan los banners, el cintillo y el foco)."""
-    if not hasattr(nuevos, "eventos"):
-        nuevos.eventos, nuevos.partida = (detectar_parciales(nuevos.video, nuevos.n_parciales)
-                                          if nuevos.n_parciales else (None, None))
+    datos_carrera(nuevos)
     return nuevos.eventos
+
+
+# ----------------------------------------------------------------------------
+# Lo que se detecta en el video (parciales, partida y pantalla dividida) se guarda al lado del
+# video: leerlo cuesta decodificarlo entero un par de veces, y son datos que no cambian.
+# ----------------------------------------------------------------------------
+
+VERSION_CARRERA = 1
+ZONA_DIV = (0, 578, 1920, 44)       # franja negra "SEXTA CARRERA ... INHIP" de la pantalla dividida
+UMBRAL_DIV = 0.4                    # fracción de píxeles negros en la franja
+DIV_VENTANA = 11                    # muestras de la mediana (a 10 por segundo: ~1 s)
+DIV_MIN = 3.0                       # s: un tramo más corto que esto es un falso positivo
+DIV_HUECO = 2.0                     # s: dos tramos separados por menos que esto son uno solo
+DIV_MARGEN = 0.3                    # s: el cintillo entra un poco antes y sale un poco después
+
+
+def cache_carrera(video):
+    return os.path.splitext(video)[0] + ".carrera-cache.json"
+
+
+def identidad_video(video):
+    st = os.stat(video)
+    return {"nombre": os.path.basename(video), "bytes": st.st_size, "mtime": int(st.st_mtime)}
+
+
+def guardar_cache(ruta, d):
+    try:
+        with open(ruta, "w", encoding="utf-8") as fh:
+            json.dump(d, fh)
+    except OSError:
+        pass          # si la carpeta es de solo lectura se vuelve a calcular la próxima vez
+
+
+def mediana(v):
+    s = sorted(v)
+    m = len(s) // 2
+    return s[m] if len(s) % 2 else (s[m - 1] + s[m]) / 2
+
+
+def tramos_de_banda(t, suave):
+    """[[inicio, fin]] a partir de la serie (tiempos, ¿hay franja negra?) ya suavizada."""
+    tramos, ini = [], None
+    for i, hay in enumerate(suave):
+        if hay and ini is None:
+            ini = t[i]
+        elif not hay and ini is not None:
+            tramos.append([ini, t[i]])
+            ini = None
+    if ini is not None:
+        tramos.append([ini, t[-1]])
+    unidos = []
+    for a, f in tramos:
+        if unidos and a - unidos[-1][1] < DIV_HUECO:
+            unidos[-1][1] = f
+        else:
+            unidos.append([a, f])
+    return [[round(max(a - DIV_MARGEN, 0.0), 2), round(f + DIV_MARGEN, 2)]
+            for a, f in unidos if f - a >= DIV_MIN]
+
+
+def dividida_de_foco_cache(video):
+    """Si ya hay un análisis de foco guardado, la pantalla dividida sale de ahí (sin decodificar el video)."""
+    ruta = os.path.splitext(video)[0] + ".foco-cache.json"
+    if not os.path.exists(ruta):
+        return None
+    try:
+        with open(ruta, encoding="utf-8") as fh:
+            d = json.load(fh)
+    except (OSError, ValueError):
+        return None
+    if d.get("identidad") != identidad_video(video) and not d.get("huella"):
+        return None
+    muestras = d.get("muestras") or []
+    if len(muestras) < DIV_VENTANA:
+        return None
+    mitad = DIV_VENTANA // 2
+    banda = [m["banda"] for m in muestras]
+    suave = [mediana(banda[max(0, i - mitad):i + mitad + 1]) > UMBRAL_DIV for i in range(len(banda))]
+    return tramos_de_banda([m["t"] for m in muestras], suave)
+
+
+def detectar_dividida(video):
+    """[[inicio, fin]] en segundos de los tramos con la pantalla dividida en dos (la franja negra
+    donde abajo se ve al narrador). Mismo criterio que foco_carrera.intervalos_dividida."""
+    x, y, w, h = ZONA_DIV
+    r = subprocess.run(["ffmpeg", "-v", "error", "-i", video, "-vf",
+                        "fps=%d,scale=1920:1080,crop=%d:%d:%d:%d,format=gray" % (FPS_ANALISIS, w, h, x, y),
+                        "-f", "rawvideo", "-"], capture_output=True)
+    tam = w * h
+    banda = []
+    for k in range(0, len(r.stdout) - tam + 1, tam):
+        f = r.stdout[k:k + tam]
+        negros = total = 0
+        for fila in range(0, h, 8):
+            base = fila * w
+            for col in range(0, w, 16):
+                total += 1
+                if f[base + col] < 45:
+                    negros += 1
+        banda.append(negros / max(total, 1))
+    n = len(banda)
+    mitad = DIV_VENTANA // 2
+    suave = [mediana(banda[max(0, i - mitad):i + mitad + 1]) > UMBRAL_DIV for i in range(n)]
+    return tramos_de_banda([i / FPS_ANALISIS for i in range(n)], suave)
+
+
+def datos_carrera(nuevos):
+    """Parciales, partida y pantalla dividida del video, calculados una sola vez (con cache)."""
+    if hasattr(nuevos, "datos"):
+        return nuevos.datos
+    ruta = cache_carrera(nuevos.video)
+    ident = identidad_video(nuevos.video)
+    d = None
+    if os.path.exists(ruta):
+        try:
+            with open(ruta, encoding="utf-8") as fh:
+                d = json.load(fh)
+        except (OSError, ValueError):
+            d = None
+        if d and (d.get("identidad") != ident or d.get("version") != VERSION_CARRERA):
+            d = None
+    if d is None:
+        if nuevos.n_parciales:
+            eventos, partida = detectar_parciales(nuevos.video, nuevos.n_parciales)
+        else:
+            eventos, partida = None, None
+        d = {"identidad": ident, "version": VERSION_CARRERA, "parciales": eventos,
+             "partida": partida, "dividida": None}
+        guardar_cache(ruta, d)
+    else:
+        print("Parciales guardados: " + (", ".join("%.1f s" % t for t in d["parciales"])
+                                         if d.get("parciales") else "ninguno"))
+    nuevos.datos = d
+    nuevos.eventos, nuevos.partida = d.get("parciales"), d.get("partida")
+    return d
+
+
+def dividida_de(nuevos, foco=None):
+    """[[inicio, fin]] de los tramos de pantalla dividida (donde va el cintillo)."""
+    if foco and foco.get("dividida") is not None:
+        return foco["dividida"]
+    d = datos_carrera(nuevos)
+    if d.get("dividida") is None:
+        tramos = dividida_de_foco_cache(nuevos.video)
+        if tramos is None:
+            print("Buscando los tramos de pantalla dividida en el video...")
+            tramos = detectar_dividida(nuevos.video)
+        d["dividida"] = tramos
+        guardar_cache(cache_carrera(nuevos.video), d)
+    return d["dividida"]
 
 
 def plan_banners(nuevos, fin_video, inicios_plantilla, k):
@@ -377,18 +535,21 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 PYTHON_VISION = os.path.join(AQUI, ".python-vision", "cpython-3.12.15-windows-x86_64-none", "python.exe")
 
 
-def calcular_foco(nuevos, carpeta_salida, nombre, vista_previa):
-    """Keyframes [segundo del video, x del centro en un cuadro de 1920 de ancho, motivo], o None."""
+def calcular_foco(nuevos, carpeta_salida, nombre, vista_previa, flash=False):
+    """Datos del foco: keyframes [segundo del video, x del centro en un cuadro de 1920, motivo] y
+    los tramos de pantalla dividida; o None si no se pudo calcular."""
     if not os.path.exists(PYTHON_VISION):
         aviso("No está el Python de visión (.python-vision); el foco queda como en la plantilla.")
         return None
-    print("\nFoco automático:")
+    print("\nFoco automático%s:" % (" (flash)" if flash else ""))
     eventos = parciales_de(nuevos) or []
     salida = os.path.join(carpeta_salida, nombre + " - foco.json")
     cmd = [PYTHON_VISION, os.path.join(AQUI, "foco_carrera.py"), nuevos.video, "--salida", salida,
            "--parciales", ",".join("%.2f" % t for t in eventos)]
     if getattr(nuevos, "partida", None) is not None:
         cmd += ["--partida", "%.2f" % nuevos.partida]
+    if flash:
+        cmd += ["--flash"]
     if vista_previa:
         cmd += ["--preview", os.path.join(carpeta_salida, nombre + " - vista previa del foco.mp4")]
     sys.stdout.flush()
@@ -396,7 +557,7 @@ def calcular_foco(nuevos, carpeta_salida, nombre, vista_previa):
         aviso("El foco automático falló; el foco queda como en la plantilla.")
         return None
     with open(salida, encoding="utf-8") as f:
-        return json.load(f)["keyframes"]
+        return json.load(f)
 
 
 # ----------------------------------------------------------------------------
@@ -500,6 +661,9 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None
                  "factor": old_w / info["w"] if old_w != info["w"] else 1.0,
                  "cambio_tam": (old_w, old_h) != (info["w"], info["h"]),
                  "imagen": all(t["type"] == 1 for t in s["sourceTracks"]),
+                 # cuánto material hay: un clip nunca puede pedir más que esto (los gif no se repiten solos)
+                 "len_fuente": next((unidades(t["range"][1] / t["editRate"]) for t in s["sourceTracks"]
+                                     if t["type"] == 0 and t.get("editRate")), None),
                  "carrera": nuevo == nuevos.video, "archivo": nuevo,
                  "banner": nuevo in nuevos.banners.values()}
         fuentes[s["id"]] = datos
@@ -541,7 +705,7 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None
         escala = valor_param(par, "scale0", 1.0) * fuente["w"] / 1920.0
         tr = lambda cx: (960.0 - cx) * escala
         desde = x.get("mediaStart", 0)
-        kf = [(cuadro(t * ER - desde), cx, motivo) for t, cx, motivo in foco]
+        kf = [(cuadro(t * ER - desde), cx, motivo) for t, cx, motivo in foco["keyframes"]]
         kf = [k for k in kf if 0 <= k[0] <= x["duration"]]
         if not kf:
             return
@@ -573,7 +737,7 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None
         if fuente["cambio_tam"] and "default-width" in md and "default-height" in md:
             md["default-height"]["value"] = md["default-width"]["value"] * fuente["h"] / fuente["w"]
         principal = not any(valor_param(x.get("parameters", {}), "geometryCrop%d" % i) for i in range(4))
-        if foco and fuente["carrera"] and x.get("_type") == "VMFile" and principal:
+        if foco and foco.get("keyframes") and fuente["carrera"] and x.get("_type") == "VMFile" and principal:
             aplicar_foco(x, fuente)
         elif limpiar_foco and fuente["carrera"] and x.get("_type") == "VMFile":
             for v in x.get("parameters", {}).values():
@@ -724,11 +888,80 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None
         return True
 
     como = None
+    cintillos = set(nuevos.cintillos)
+    tramos_div = dividida_de(nuevos, foco) if cintillos else []
+
+    def es_cintillo_track(tr):
+        return bool(tr["medias"]) and all(
+            fuentes.get(src_de(m), {}).get("archivo") in cintillos for m in tr["medias"])
+
+    def armar_cintillo(tr, tramos):
+        """Un tramo de cintillo por cada tramo de pantalla dividida: entra cuando la pantalla se parte
+        en dos (abajo se ve al narrador) y sale cuando vuelve a pantalla completa.
+
+        El gif no se repite solo, así que un tramo más largo que el gif se cubre con varios clips
+        pegados (como hace la plantilla), cada uno con material suficiente."""
+        clips = sorted(tr["medias"], key=lambda m: m["start"])
+        modelo = clips[0]
+        tope = max(fuentes.get(modelo.get("src"), {}).get("len_fuente") or FRAME, FRAME)
+        trans = tr.get("transitions") or []
+        entrada = next((t for t in trans if "leftMedia" not in t), None)
+        salida = next((t for t in trans if "rightMedia" not in t), None)
+        armados = []            # [[clips del tramo 1], [clips del tramo 2], ...]
+        for ini, fin in tramos:
+            ini_u = unidades(desfase + ini)
+            fin_u = unidades(min(desfase + fin, fin_carrera))
+            if fin_u - ini_u < FRAME:
+                continue
+            trozos = max(1, int(math.ceil((fin_u - ini_u) / tope)))
+            paso = min(cuadro(int(math.ceil((fin_u - ini_u) / trozos))), tope)
+            grupo = []
+            for k in range(trozos):
+                m = copy.deepcopy(modelo)
+                if armados or grupo:
+                    ids[0] += 1
+                    m["id"] = ids[0]
+                m["start"] = ini_u + k * paso
+                m["duration"] = max(min(paso, fin_u - m["start"]), FRAME)
+                m["mediaDuration"] = m["duration"]     # el clip no pide más que el gif
+                grupo.append(m)
+            armados.append(grupo)
+        if not armados:
+            return
+        tr["medias"] = [m for grupo in armados for m in grupo]
+        if "transitions" in tr:
+            nuevas = []
+            for grupo in armados:       # fundido al entrar y al salir; adentro los clips van pegados
+                if entrada:
+                    nuevas.append(dict(copy.deepcopy(entrada), rightMedia=grupo[0]["id"]))
+                if salida:
+                    nuevas.append(dict(copy.deepcopy(salida), leftMedia=grupo[-1]["id"]))
+            tr["transitions"] = nuevas
+        print("Cintillo: %d tramo(s) de pantalla dividida (%s), %d clip(s) de %.1f s máximo."
+              % (len(armados), ", ".join("%.1f-%.1f s" % (a, b) for a, b in tramos),
+                 len(tr["medias"]), tope / ER))
+
+    # el cintillo se ubica en la línea de tiempo con el mismo desfase que el video de la carrera
+    desfase, fin_carrera = None, None
+    for tr in pistas:
+        for m in tr["medias"]:
+            f = fuentes.get(src_de(m))
+            if f and f["carrera"] and m.get("start") is not None:
+                off = (m["start"] - m.get("mediaStart", 0)) / ER
+                desfase = off if desfase is None else min(desfase, off)
+                fin = (m["start"] + m["duration"]) / ER
+                fin_carrera = fin if fin_carrera is None else max(fin_carrera, fin)
+    desfase = desfase or 0.0
+    if fin_carrera is None:
+        fin_carrera = float("inf")
+
     for tr in pistas:
         recorrer(tr["medias"], True)
         con_carrera = any(fuentes.get(src_de(m), {}).get("carrera") for m in tr["medias"])
         if es_banners(tr):
             armar_banners(tr)
+        elif es_cintillo_track(tr) and tramos_div:
+            armar_cintillo(tr, tramos_div)
         elif carrera and not con_carrera and tr["medias"]:
             if anclar(tr["medias"]):
                 como = "con el primer parcial, como en la plantilla"
@@ -737,10 +970,55 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None
                 como = "en proporción (x%.2f)" % (NEW_END / OLD_END)
     if como:
         print("Cintillo reubicado %s." % como)
+    if cintillos and not tramos_div:
+        aviso("No pude detectar tramos de pantalla dividida: el cintillo queda como en la plantilla.")
     if carrera and NEW_END < OLD_END and not limpiar_foco and not foco:
         aviso("El video nuevo es más corto: los focos de la plantilla después de %.1f s ya no aplican."
               % (NEW_END / ER))
 
+    def revisar_proyecto():
+        """Chequeos baratos antes de guardar. El importante: un clip no puede pedir más material del
+        que tiene su archivo (Camtasia se niega a abrir el proyecto entero si eso pasa)."""
+        problemas, vistos = [], set()
+
+        def duracion(x, donde):
+            d = x.get("duration") or 0
+            if d <= 0:
+                problemas.append("%s: duración 0" % donde)
+                return
+            f = fuentes.get(x.get("src"))
+            if f and f.get("len_fuente"):
+                usado = (x.get("mediaStart") or 0) + (x.get("mediaDuration") or d)
+                if usado > f["len_fuente"] + FRAME:
+                    problemas.append("%s: pide %.1f s y el archivo tiene %.1f s"
+                                     % (donde, usado / ER, f["len_fuente"] / ER))
+
+        def recorrer(medias):
+            for m in medias:
+                if m.get("_type") == "Group":
+                    for t in m.get("tracks", []):
+                        recorrer(t.get("medias", []))
+                    continue
+                for x in partes(m):
+                    if x.get("id") in vistos:
+                        problemas.append("id repetido: %s" % x.get("id"))
+                    vistos.add(x.get("id"))
+                    if x.get("_type") != "UnifiedMedia":
+                        duracion(x, "clip %s (%s)" % (x.get("id"), x.get("_type")))
+
+        for tr in pistas:
+            recorrer(tr["medias"])
+            en_pista = {m.get("id") for m in tr["medias"] if m.get("_type") != "UnifiedMedia"}
+            for x in (tr.get("transitions") or []):
+                for lado in ("leftMedia", "rightMedia"):
+                    if lado in x and x[lado] not in en_pista:
+                        problemas.append("una transición apunta a un clip que no está en su pista (%s)"
+                                         % x[lado])
+        for pr in problemas:
+            aviso(pr)
+        return problemas
+
+    revisar_proyecto()
     meta = p.setdefault("metadata", {})
     meta["Title"] = nombre
     meta["AutoSaveFile"] = ""
@@ -1142,6 +1420,8 @@ def main():
                     help="solo 2026: borra los keyframes de foco del video para empezar desde cero")
     ap.add_argument("--foco-auto", action="store_true",
                     help="solo 2026: calcula el foco (paneo) siguiendo a los caballos en el video")
+    ap.add_argument("--flash", action="store_true",
+                    help="con --foco-auto: versión rápida, con muchos menos movimientos de cámara")
     ap.add_argument("--vista-previa", action="store_true",
                     help="con --foco-auto: también crea un mp4 vertical para revisar el foco")
     ap.add_argument("rutas", nargs="+", help="carpeta de banners y, opcionalmente, el video de la carrera")
@@ -1173,11 +1453,11 @@ def main():
 
     os.makedirs(a.salida, exist_ok=True)
     if plantilla.lower().endswith(".tscproj"):
-        foco = calcular_foco(nuevos, a.salida, nombre, a.vista_previa) if a.foco_auto else None
+        foco = calcular_foco(nuevos, a.salida, nombre, a.vista_previa, a.flash) if a.foco_auto else None
         salida = procesar_2026(plantilla, nuevos, a.salida, nombre, a.limpiar_foco, foco)
     elif plantilla.lower().endswith(".camproj"):
-        if a.limpiar_foco or a.foco_auto:
-            aviso("--limpiar-foco y --foco-auto solo funcionan con Camtasia 2026; en 8.6 se conservan los focos.")
+        if a.limpiar_foco or a.foco_auto or a.flash:
+            aviso("--limpiar-foco, --foco-auto y --flash solo funcionan con Camtasia 2026; en 8.6 se conservan los focos.")
         salida = procesar_86(plantilla, nuevos, a.salida, nombre)
     else:
         sys.exit("La plantilla debe ser .camproj o .tscproj")

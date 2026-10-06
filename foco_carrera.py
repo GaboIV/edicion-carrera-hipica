@@ -28,6 +28,7 @@ import argparse
 import hashlib
 import json
 import os
+import subprocess
 import sys
 
 import cv2
@@ -40,12 +41,19 @@ CONF = 0.25
 PERSONA, CABALLO = 0, 17          # clases de COCO
 VERSION = 2                       # cambia si cambia lo que se guarda en el análisis
 
+# El perfil "flash" mira menos cuadros y con menos resolución: sigue a los caballos casi igual
+# pero tarda una fracción. Además deja pocos movimientos de cámara (ver reducir()).
+PERFILES = {
+    "normal": {"modelo": MODELO, "imgsz": IMGSZ, "paso_deteccion": 6, "escala": 1.0, "lote": 4},
+    "flash": {"modelo": MODELO, "imgsz": 960, "paso_deteccion": 12, "escala": 0.5, "lote": 8},
+}
+
 W, H = 1920, 1080                 # el análisis se hace en coordenadas de un cuadro 1920x1080
 ESCALA = 1920 / 1080              # escala del video en el proyecto vertical
 VENTANA = 1080 / ESCALA           # ancho visible del original (~607 px)
 MITAD = VENTANA / 2
 PASO_ANALISIS = 3                 # cuadros: histograma y pantalla dividida (~10/s)
-PASO_DETECCION = 6                # cuadros: caballos y jinetes (~5/s)
+PASO_DETECCION = PERFILES["normal"]["paso_deteccion"]   # cuadros: caballos y jinetes (~5/s)
 
 Y_BANDA = (578, 622)              # franja negra "SEXTA CARRERA ... INH" de la pantalla dividida
 Y_CORTE_DIVIDIDA = 565            # en pantalla dividida solo cuenta la imagen de arriba
@@ -61,68 +69,165 @@ VISITA = 1.3                      # segundos mirando al que partió mal
 VEL_MAX = 650.0                   # px/s del original: velocidad máxima del paneo
 TOLERANCIA = 25.0                 # px: simplificación de keyframes
 
+# Perfil flash: menos movimientos de cámara (keyframes más separados)
+TOL_FLASH = 70.0                  # px: lo que se puede quitar sin que se note
+TOL_MAX_FLASH = 130.0             # px: error máximo tolerado al forzar menos movimientos
+SEG_MIN_FLASH = 6.0               # s: separación mínima entre keyframes
+MEDIANA_FLASH = 15                # muestras: suavizado más ancho (~6 s)
+DIV_MIN = 3.0                     # s: pantalla dividida más corta que esto se ignora
+DIV_HUECO = 2.0                   # s: dos tramos separados por menos que esto se unen
+DIV_MARGEN = 0.3                  # s: el cintillo entra un poco antes y sale un poco después
+
 
 # ----------------------------------------------------------------------------
 # Lectura del video: un solo recorrido
 # ----------------------------------------------------------------------------
 
-def huella(video):
+def identidad(video):
+    """Datos del archivo: lo que hace que un análisis guardado siga sirviendo."""
     st = os.stat(video)
-    return hashlib.md5(("%s|%d|%d|%s|%d|%d" % (os.path.basename(video), st.st_size, int(st.st_mtime),
-                                                MODELO, IMGSZ, VERSION)).encode()).hexdigest()
+    return {"nombre": os.path.basename(video), "bytes": st.st_size, "mtime": int(st.st_mtime)}
 
 
-def analizar(video):
+def huella(video):
+    """Huella del formato viejo del cache (análisis hecho con el perfil normal)."""
+    i = identidad(video)
+    return hashlib.md5(("%s|%d|%d|%s|%d|%d" % (i["nombre"], i["bytes"], i["mtime"],
+                                               MODELO, IMGSZ, VERSION)).encode()).hexdigest()
+
+
+def leer_cuadros(video, escala):
+    """Cuadros BGR para el análisis, del tamaño que pida el perfil.
+
+    Con escala 1 los lee OpenCV, cuadro por cuadro, del video original. El perfil flash usa
+    media escala y se los pide a ffmpeg, que decodifica en varios hilos: es bastante más rápido
+    y el modelo ve los caballos igual de grandes (YOLO reescala la entrada a imgsz de todos modos)."""
+    if escala >= 1.0:
+        cap = cv2.VideoCapture(video)
+        try:
+            while True:
+                ok, f = cap.read()
+                if not ok:
+                    break
+                if f.shape[1] != W:
+                    f = cv2.resize(f, (W, H))
+                yield f
+        finally:
+            cap.release()
+        return
+    wa, ha = int(round(W * escala)), int(round(H * escala))
+    proceso = subprocess.Popen(
+        ["ffmpeg", "-v", "error", "-i", video, "-vf", "scale=%d:%d" % (wa, ha),
+         "-f", "rawvideo", "-pix_fmt", "bgr24", "-"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    tam = wa * ha * 3
+    try:
+        while True:
+            b = proceso.stdout.read(tam)
+            while 0 < len(b) < tam:                     # el pipe puede cortar el cuadro
+                resto = proceso.stdout.read(tam - len(b))
+                if not resto:
+                    break
+                b += resto
+            if len(b) < tam:
+                break
+            yield np.frombuffer(b, np.uint8).reshape(ha, wa, 3)
+    finally:
+        proceso.stdout.close()
+        proceso.kill()
+        proceso.wait()
+
+
+def analizar(video, perfil=None, fps=None, total=0):
     from ultralytics import YOLO
-    modelo = YOLO(os.path.join(AQUI, "modelos", MODELO))
-    cap = cv2.VideoCapture(video)
-    fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
-    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    perfil = perfil or PERFILES["normal"]
+    esc = float(perfil.get("escala", 1.0))
+    paso = max(int(round(4 * esc)), 1)                  # muestreo de histograma y de la franja
+    modelo = YOLO(os.path.join(AQUI, "modelos", perfil["modelo"]))
+    if fps is None or not total:
+        c = cv2.VideoCapture(video)
+        fps = fps or c.get(cv2.CAP_PROP_FPS) or 30.0
+        total = int(c.get(cv2.CAP_PROP_FRAME_COUNT))
+        c.release()
     previo = previo_hist = None
     mad, muestras, detecciones = [], [], []
+    lote, pendientes, avisado = [], [], [0]
+
+    def detectar():
+        """Pasa el lote de cuadros junto: en CPU es bastante más rápido que cuadro por cuadro."""
+        if not lote:
+            return
+        resultados = modelo.predict(lote, imgsz=perfil["imgsz"], conf=CONF,
+                                    classes=[PERSONA, CABALLO], verbose=False)
+        for (_, tt), r in zip(pendientes, resultados):
+            cajas = [[round(x1 / esc), round(y1 / esc), round(x2 / esc), round(y2 / esc), round(c, 2), int(k)]
+                     for (x1, y1, x2, y2), c, k in zip(r.boxes.xyxy.tolist(), r.boxes.conf.tolist(),
+                                                       r.boxes.cls.tolist())]
+            detecciones.append({"t": round(tt, 3), "cajas": cajas})
+        del lote[:]
+        del pendientes[:]
+
     i = 0
-    while True:
-        ok, f = cap.read()
-        if not ok:
-            break
-        if f.shape[1] != W:
-            f = cv2.resize(f, (W, H))
+    for f in leer_cuadros(video, esc):
         gris = cv2.cvtColor(f, cv2.COLOR_BGR2GRAY)
         mini = cv2.resize(gris, (64, 36), interpolation=cv2.INTER_AREA).astype(np.int16)
         mad.append(0.0 if previo is None else round(float(np.abs(mini - previo).mean()), 1))
         previo = mini
         t = i / fps
         if i % PASO_ANALISIS == 0:
-            hist = cv2.calcHist([gris[::4, ::4]], [0], None, [32], [0, 256])
+            hist = cv2.calcHist([gris[::paso, ::paso]], [0], None, [32], [0, 256])
             cv2.normalize(hist, hist)
             corr = 1.0 if previo_hist is None else cv2.compareHist(previo_hist, hist, cv2.HISTCMP_CORREL)
             previo_hist = hist
-            banda = float((gris[Y_BANDA[0]:Y_BANDA[1]:2, ::4] < 45).mean())
+            banda = float((gris[int(Y_BANDA[0] * esc):int(Y_BANDA[1] * esc):max(int(2 * esc), 1),
+                                ::paso] < 45).mean())
             muestras.append({"t": round(t, 3), "hist": round(corr, 3), "banda": round(banda, 3)})
-        if i % PASO_DETECCION == 0:
-            r = modelo.predict(f, imgsz=IMGSZ, conf=CONF, classes=[PERSONA, CABALLO], verbose=False)[0]
-            cajas = [[round(x1), round(y1), round(x2), round(y2), round(c, 2), int(k)]
-                     for (x1, y1, x2, y2), c, k in zip(r.boxes.xyxy.tolist(), r.boxes.conf.tolist(),
-                                                       r.boxes.cls.tolist())]
-            detecciones.append({"t": round(t, 3), "cajas": cajas})
-            if len(detecciones) % 100 == 0:
-                print("  analizando video... %d%%" % (100 * i // max(total, 1)), flush=True)
+        if i % perfil["paso_deteccion"] == 0:
+            lote.append(f if f.flags.writeable else f.copy())
+            pendientes.append((i, t))
+            if len(lote) >= perfil.get("lote", 4):
+                detectar()
+                if len(detecciones) - avisado[0] >= 100:
+                    avisado[0] = len(detecciones)
+                    print("  analizando video... %s" % ("%d%%" % (100 * i // total) if total > 0
+                                                        else "%.0f s" % t), flush=True)
         i += 1
+    detectar()
     return {"fps": fps, "duracion": i / fps, "mad": mad, "muestras": muestras, "detecciones": detecciones}
 
 
-def cargar_o_analizar(video):
+def sirve(d, video, perfil):
+    """¿El análisis guardado alcanza para el perfil que se pide? (mismo modelo, igual o mejor calidad)"""
+    if d.get("perfil"):
+        if d.get("identidad") != identidad(video):
+            return False
+        guardado = d["perfil"]
+    elif d.get("huella") == huella(video):      # cache del formato viejo (siempre perfil normal)
+        guardado = PERFILES["normal"]
+    else:
+        return False
+    return (guardado.get("modelo") == perfil["modelo"]
+            and guardado.get("imgsz", 0) >= perfil["imgsz"]
+            and guardado.get("paso_deteccion", 999) <= perfil["paso_deteccion"])
+
+
+def cargar_o_analizar(video, perfil=None):
+    perfil = perfil or PERFILES["normal"]
     cache = os.path.splitext(video)[0] + ".foco-cache.json"
-    h = huella(video)
     if os.path.exists(cache):
         with open(cache, encoding="utf-8") as fh:
             d = json.load(fh)
-        if d.get("huella") == h:
+        if sirve(d, video, perfil):
             print("  usando el análisis guardado (%s)" % os.path.basename(cache))
             return d
     print("  analizando el video (la primera vez tarda unos minutos)...")
-    d = analizar(video)
-    d["huella"] = h
+    c = cv2.VideoCapture(video)
+    fps = c.get(cv2.CAP_PROP_FPS) or 30.0
+    total = int(c.get(cv2.CAP_PROP_FRAME_COUNT))
+    c.release()
+    d = analizar(video, perfil, fps, total)
+    d["identidad"] = identidad(video)
+    d["perfil"] = dict(perfil)
+    d["huella"] = huella(video)
     with open(cache, "w", encoding="utf-8") as fh:
         json.dump(d, fh)
     return d
@@ -142,6 +247,31 @@ def pantalla_dividida(muestras):
     t = np.array([m["t"] for m in muestras])
     b = mediana_movil([m["banda"] for m in muestras], 11) > 0.4
     return t, b
+
+
+def intervalos_dividida(muestras, minimo=DIV_MIN, hueco=DIV_HUECO, margen=DIV_MARGEN):
+    """[[inicio, fin]] en segundos de los tramos con la pantalla dividida (la franja negra con
+    "SEXTA CARRERA ... HIPÓDROMO"). Ahí abajo se ve al narrador: el cintillo va justo en esos tramos."""
+    if not muestras:
+        return []
+    t, b = pantalla_dividida(muestras)
+    tramos, ini = [], None
+    for i in range(len(b)):
+        if b[i] and ini is None:
+            ini = float(t[i])
+        elif not b[i] and ini is not None:
+            tramos.append([ini, float(t[i])])
+            ini = None
+    if ini is not None:
+        tramos.append([ini, float(t[-1])])
+    unidos = []
+    for a, f in tramos:                       # dos tramos casi pegados son uno solo
+        if unidos and a - unidos[-1][1] < hueco:
+            unidos[-1][1] = f
+        else:
+            unidos.append([a, f])
+    return [[round(max(a - margen, 0.0), 2), round(f + margen, 2)]
+            for a, f in unidos if f - a >= minimo]
 
 
 def candidatos_corte(d):
@@ -235,7 +365,7 @@ def rezagado(caballos, sentido):
     return (ultimo[0] + ultimo[2]) / 2 if hueco > 1.8 * ancho else None
 
 
-def calcular(d, parciales, partida=0.0):
+def calcular(d, parciales, partida=0.0, flash=False):
     dur = d["duracion"]
     td, bd = pantalla_dividida(d["muestras"])
     dividida = lambda t: bool(bd[min(np.searchsorted(td, t), len(bd) - 1)])
@@ -303,7 +433,7 @@ def calcular(d, parciales, partida=0.0):
         tramo = [p for p in serie if a <= p[0] < b]
         if not tramo:
             continue
-        kf = suavizar(tramo, a)
+        kf = suavizar(tramo, a, flash)
         if a > 0:
             kf[0][2] = "corte"
         keyframes += kf
@@ -334,12 +464,12 @@ def rdp(puntos, tol):
     return rdp(puntos[:k + 1], tol)[:-1] + rdp(puntos[k:], tol)
 
 
-def suavizar(tramo, a):
+def suavizar(tramo, a, flash=False):
     """Keyframes [t, x, motivo] de una toma: sin temblores y con velocidad de paneo limitada."""
     ts = [p[0] for p in tramo]
     xs = [p[1] for p in tramo]
     visita = [p[2] == "partió mal" for p in tramo]
-    m = list(mediana_movil(xs, 9))
+    m = list(mediana_movil(xs, MEDIANA_FLASH if flash else 9))
     m = [xs[i] if visita[i] else m[i] for i in range(len(m))]
     for orden in (range(1, len(m)), range(len(m) - 2, -1, -1)):   # hacia adelante y hacia atrás
         for i in orden:
@@ -349,7 +479,32 @@ def suavizar(tramo, a):
     puntos = [(round(t, 3), round(limitar(x), 1)) for t, x in zip(ts, m)]
     puntos[0] = (round(a, 3), puntos[0][1])
     motivo = {round(p[0], 3): p[2] for p in tramo}
-    return [[t, x, motivo.get(t, "")] for t, x in rdp(puntos, TOLERANCIA)]
+    if not flash:
+        return [[t, x, motivo.get(t, "")] for t, x in rdp(puntos, TOLERANCIA)]
+    # flash: pocos movimientos de cámara, largos y parejos. Primero se saca lo que sobra sin que
+    # se note (TOL_FLASH) y después se sigue sacando hasta dejar uno cada SEG_MIN_FLASH segundos,
+    # siempre que el encuadre no se aleje más de TOL_MAX_FLASH del ideal.
+    objetivo = max(2, int(round((ts[-1] - ts[0]) / SEG_MIN_FLASH)) + 1)
+    kf = decimar(puntos, TOL_FLASH, len(puntos))
+    kf = decimar(kf, TOL_MAX_FLASH, objetivo)
+    return [[t, x, motivo.get(t, "")] for t, x in kf]
+
+
+def decimar(puntos, tol, objetivo):
+    """Saca de a un punto mientras el error que agrega no pase de tol (o hasta llegar a objetivo)."""
+    p = list(puntos)
+    while len(p) > max(objetivo, 2):
+        peor, k = None, -1
+        for i in range(1, len(p) - 1):
+            (t0, x0), (t1, x1), (t2, x2) = p[i - 1], p[i], p[i + 1]
+            esperado = x0 + (x2 - x0) * (t1 - t0) / ((t2 - t0) or 1e-6)
+            err = abs(x1 - esperado)
+            if peor is None or err < peor:
+                peor, k = err, i
+        if k < 0 or peor > tol:
+            break
+        del p[k]
+    return p
 
 
 # ----------------------------------------------------------------------------
@@ -400,17 +555,23 @@ def main():
     ap.add_argument("--parciales", default="", help="segundos en que aparece cada parcial, separados por coma")
     ap.add_argument("--partida", type=float, default=0.0, help="segundo en que sale la gráfica de tiempos")
     ap.add_argument("--preview", help="mp4 vertical para revisar el foco")
+    ap.add_argument("--flash", action="store_true",
+                    help="perfil rápido: menos cuadros analizados y muchos menos movimientos de cámara")
     a = ap.parse_args()
     parciales = [float(x) for x in a.parciales.split(",") if x.strip()]
+    perfil = PERFILES["flash" if a.flash else "normal"]
 
-    d = cargar_o_analizar(a.video)
-    r = calcular(d, parciales, a.partida)
+    d = cargar_o_analizar(a.video, perfil)
+    r = calcular(d, parciales, a.partida, a.flash)
     r["ventana"] = VENTANA
     r["escala"] = ESCALA
+    r["dividida"] = intervalos_dividida(d["muestras"])
     with open(a.salida, "w", encoding="utf-8") as fh:
         json.dump(r, fh, ensure_ascii=False, indent=1)
     print("  foco: %d keyframes, %d cortes de cámara (%s)"
           % (len(r["keyframes"]), len(r["cortes"]), ", ".join("%.1f s" % c for c in r["cortes"])))
+    print("  pantalla dividida: " + (", ".join("%.1f-%.1f s" % (x, y) for x, y in r["dividida"])
+                                     or "no hubo"))
     for n in r["notas"]:
         print("  " + n)
     if a.preview:
