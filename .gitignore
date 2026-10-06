@@ -1,1 +1,4 @@
 Carreras/*/*
+.python-vision/
+modelos/
+__pycache__/

@@ -4,6 +4,8 @@ Crea un proyecto nuevo de Camtasia a partir de una plantilla, reemplazando:
   - los banners de tiempos (sin tiempos, 400m, 800m, ..., ganador)
   - el cintillo (gif / mp4)
   - el video de la carrera
+Los banners se colocan cuando la gráfica de TIEMPO del video muestra cada parcial.
+El banner del tiempo final no se usa: después del penúltimo parcial entra el ganador.
 Soporta Camtasia 8.6 (.camproj, XML) y Camtasia 2026 (.tscproj, JSON).
 La plantilla NO se modifica: siempre se escribe un proyecto nuevo.
 
@@ -11,6 +13,7 @@ Uso:
   python camtasia_carrera.py --plantilla PLANTILLA [--salida CARPETA] carpeta_carrera [video.mp4]
 """
 import argparse
+import copy
 import datetime
 import json
 import math
@@ -159,11 +162,14 @@ class Nuevos:
                           % (nombre_rango(r), os.path.basename(self.banners[r]), os.path.basename(f)))
                     continue
                 self.banners[r] = f
+        # el último parcial es el tiempo final: no se muestra, se salta al ganador
+        parciales = [r for r in self.banners if 0 < r < GANADOR]
+        self.n_parciales = max(parciales) if parciales else 0
+        self.final = self.banners.pop(self.n_parciales) if parciales else None
         self.video = video
         self.usados = set()
 
-    def elegir(self, src_viejo, en_linea=True):
-        """en_linea=False: la fuente solo está en el contenedor de medios, no en la línea de tiempo."""
+    def elegir(self, src_viejo):
         base = os.path.basename(src_viejo)
         ext = ext_de(base)
         if es_cintillo(base):
@@ -177,12 +183,10 @@ class Nuevos:
             r = rango_banner(base)
             nuevo = self.banners.get(r)
             if nuevo is None and r != GANADOR:
+                # fuente que esta carrera no usa; la pista de banners se arma después según el plan
                 menores = [k for k in self.banners if k < r]
                 if menores:
                     nuevo = self.banners[max(menores)]
-                    if en_linea:
-                        aviso("La plantilla tiene '%s' pero esta carrera no; se puso '%s' (repetido). "
-                              "Borra ese clip si sobra." % (nombre_rango(r), os.path.basename(nuevo)))
         else:
             nuevo = None
         if nuevo:
@@ -255,6 +259,147 @@ def ruta_libre(ruta):
 
 
 # ----------------------------------------------------------------------------
+# Parciales en el video: la gráfica CARRERA | DISTANCIA | TIEMPO (arriba a la izquierda)
+# muestra "400m 23.70", "800m 46.02", ... y el texto cambia en cada parcial.
+# ----------------------------------------------------------------------------
+
+ZONA_TIEMPO = (480, 104, 250, 46)   # x, y, ancho, alto del texto del parcial en un cuadro de 1920x1080
+FPS_ANALISIS = 10
+UMBRAL_CAMBIO = 12                  # diferencia media (0-255) entre cuadros separados 0.3 s
+IGNORAR_INICIO = 12.0               # antes de esto la gráfica todavía está entrando
+ZONA_ROTULO = (490, 62, 120, 20)    # dentro del rótulo amarillo "TIEMPO": dice si la gráfica está en pantalla
+ADELANTO_GANADOR = 1.5              # el ganador entra al cruzar la meta, un poco antes del tiempo final
+BLANCO = bytes(1 if v > 200 else 0 for v in range(256))
+
+
+def cuadros_gris(video, filtro, ancho, alto):
+    r = subprocess.run(["ffmpeg", "-v", "error", "-i", video, "-vf",
+                        "fps=%d,scale=1920:1080,format=gray,%s" % (FPS_ANALISIS, filtro),
+                        "-f", "rawvideo", "-"], capture_output=True)
+    tam = ancho * alto
+    return [r.stdout[i:i + tam] for i in range(0, len(r.stdout) - tam + 1, tam)]
+
+
+def grafica_en_pantalla(video):
+    """Por cada cuadro analizado: ¿se ve el rótulo amarillo "TIEMPO"? (antes de la partida no está)"""
+    x, y, w, h = ZONA_ROTULO
+    r = subprocess.run(["ffmpeg", "-v", "error", "-i", video, "-vf",
+                        "fps=%d,scale=1920:1080,crop=%d:%d:%d:%d,format=rgb24" % (FPS_ANALISIS, w, h, x, y),
+                        "-f", "rawvideo", "-"], capture_output=True)
+    tam = w * h * 3
+    res = []
+    for k in range(0, len(r.stdout) - tam + 1, tam):
+        f = r.stdout[k:k + tam]
+        amarillo = sum(1 for i in range(0, tam, 3) if f[i] > 180 and f[i + 1] > 130 and f[i + 2] < 110)
+        res.append(0.35 <= amarillo / (w * h) <= 0.7)
+    return res
+
+
+def detectar_parciales(video, n):
+    """(segundos en que la gráfica empieza a mostrar cada parcial —los n, incluido el final— o None,
+    segundo en que aparece la gráfica, que es más o menos la partida)"""
+    x, y, w, h = ZONA_TIEMPO
+    recorte = "crop=%d:%d:%d:%d" % (w, h, x, y)
+    bw, bh = w // 5, h // 5
+    texto = cuadros_gris(video, recorte, w, h)
+    bloques = cuadros_gris(video, recorte + ",scale=%d:%d:flags=area" % (bw, bh), bw, bh)
+    visible = grafica_en_pantalla(video)
+    N = min(len(texto), len(bloques), len(visible))
+    # la gráfica "aparece" cuando se ve 2 s seguidos
+    aparicion = next((i / FPS_ANALISIS for i in range(N - 20) if all(visible[i:i + 20])), None)
+    eventos = []
+    i = 5
+    while i < N:
+        d = sum(abs(a - b) for a, b in zip(bloques[i], bloques[i - 3])) / (bw * bh)
+        # imágenes de la previa y la entrada de la gráfica no cuentan
+        con_grafica = aparicion is not None and i / FPS_ANALISIS > aparicion + 1 and             visible[i - 5] and visible[min(i + 15, N - 1)]
+        if d > UMBRAL_CAMBIO and con_grafica and i / FPS_ANALISIS >= IGNORAR_INICIO:
+            # cuando la animación termina tiene que quedar texto (no la gráfica saliendo de pantalla)
+            blancos = texto[min(i + 15, N - 1)].translate(BLANCO).count(1)
+            if 200 <= blancos <= 2200:
+                eventos.append(i / FPS_ANALISIS)
+            i += 15   # una misma animación dura menos de 1.5 s
+        i += 1
+    print("Parciales en el video: " + (", ".join("%.1f s" % t for t in eventos) or "ninguno"))
+    # partida: cuando sale la gráfica o ~24 s antes del primer parcial (400m), lo que pase primero
+    partida = min([t for t in (aparicion, eventos[0] - 24.0 if eventos else None) if t is not None] or [0.0])
+    print("Partida: ~%.1f s" % max(partida, 0.0))
+    return (eventos[:n] if len(eventos) >= n else None), max(partida, 0.0)
+
+
+def parciales_de(nuevos):
+    """detectar_parciales una sola vez por carrera (lo usan los banners, el cintillo y el foco)."""
+    if not hasattr(nuevos, "eventos"):
+        nuevos.eventos, nuevos.partida = (detectar_parciales(nuevos.video, nuevos.n_parciales)
+                                          if nuevos.n_parciales else (None, None))
+    return nuevos.eventos
+
+
+def plan_banners(nuevos, fin_video, inicios_plantilla, k):
+    """[(rango, inicio, fin)] en segundos. inicios_plantilla: dónde empiezan los banners en la plantilla;
+    k: duración del video nuevo / la de la plantilla (para el respaldo proporcional)."""
+    parciales = sorted(r for r in nuevos.banners if 0 < r < GANADOR)
+    n = nuevos.n_parciales
+    eventos = parciales_de(nuevos)
+    tiempos = {0: inicios_plantilla[0] * k}
+    if eventos:
+        # "sin tiempos" entra con la misma anticipación al primer parcial que en la plantilla
+        if len(inicios_plantilla) > 2:
+            tiempos[0] = max(eventos[0] - (inicios_plantilla[1] - inicios_plantilla[0]), 0.0)
+        tiempos.update((r, eventos[r - 1]) for r in parciales)
+        tiempos[GANADOR] = eventos[n - 1] - ADELANTO_GANADOR
+    else:
+        aviso("No pude leer los %d parciales en la gráfica del video; los banners quedan en tiempos "
+              "aproximados, ajústalos a mano." % n)
+        a = (inicios_plantilla[1] if len(inicios_plantilla) > 2 else inicios_plantilla[0]) * k
+        b = inicios_plantilla[-1] * k
+        tiempos.update((r, a + (b - a) * i / max(len(parciales), 1)) for i, r in enumerate(parciales))
+        tiempos[GANADOR] = b
+    orden = [r for r in sorted(nuevos.banners) if r in tiempos]
+    plan = []
+    for i, r in enumerate(orden):
+        fin = tiempos[orden[i + 1]] if i + 1 < len(orden) else fin_video
+        if fin - tiempos[r] < 1:
+            aviso("El banner '%s' queda con menos de 1 s (%.1f s); revísalo." % (nombre_rango(r), tiempos[r]))
+        plan.append((r, tiempos[r], fin))
+    if nuevos.final:
+        print("Tiempo final omitido (entra el ganador): %s" % os.path.basename(nuevos.final))
+    print("Banners: " + ", ".join("%s %.1f s" % (nombre_rango(r), ini) for r, ini, _ in plan))
+    return plan
+
+
+# ----------------------------------------------------------------------------
+# Foco automático: foco_carrera.py corre en un Python 3.12 propio, dentro de .python-vision
+# (con YOLO); no depende de nada instalado fuera de esta carpeta
+# ----------------------------------------------------------------------------
+
+AQUI = os.path.dirname(os.path.abspath(__file__))
+PYTHON_VISION = os.path.join(AQUI, ".python-vision", "cpython-3.12.15-windows-x86_64-none", "python.exe")
+
+
+def calcular_foco(nuevos, carpeta_salida, nombre, vista_previa):
+    """Keyframes [segundo del video, x del centro en un cuadro de 1920 de ancho, motivo], o None."""
+    if not os.path.exists(PYTHON_VISION):
+        aviso("No está el Python de visión (.python-vision); el foco queda como en la plantilla.")
+        return None
+    print("\nFoco automático:")
+    eventos = parciales_de(nuevos) or []
+    salida = os.path.join(carpeta_salida, nombre + " - foco.json")
+    cmd = [PYTHON_VISION, os.path.join(AQUI, "foco_carrera.py"), nuevos.video, "--salida", salida,
+           "--parciales", ",".join("%.2f" % t for t in eventos)]
+    if getattr(nuevos, "partida", None) is not None:
+        cmd += ["--partida", "%.2f" % nuevos.partida]
+    if vista_previa:
+        cmd += ["--preview", os.path.join(carpeta_salida, nombre + " - vista previa del foco.mp4")]
+    sys.stdout.flush()
+    if subprocess.run(cmd).returncode:
+        aviso("El foco automático falló; el foco queda como en la plantilla.")
+        return None
+    with open(salida, encoding="utf-8") as f:
+        return json.load(f)["keyframes"]
+
+
+# ----------------------------------------------------------------------------
 # Camtasia 2026 (.tscproj JSON)
 # ----------------------------------------------------------------------------
 
@@ -274,7 +419,12 @@ def escalar_param(params, nombre, factor):
         params[nombre] = v * factor
 
 
-def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco):
+def valor_param(params, nombre, defecto=0.0):
+    v = params.get(nombre, defecto)
+    return v.get("defaultValue", defecto) if isinstance(v, dict) else v
+
+
+def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None):
     with open(plantilla, encoding="utf-8-sig") as f:
         p = json.load(f)
     dir_plantilla = os.path.dirname(os.path.abspath(plantilla))
@@ -290,25 +440,12 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco):
     os.makedirs(bundle)
     salida = os.path.join(bundle, os.path.basename(bundle))
 
-    en_linea = set()   # ids de fuentes que aparecen en la línea de tiempo
-
-    def buscar_src(o):
-        if isinstance(o, dict):
-            if isinstance(o.get("src"), int):
-                en_linea.add(o["src"])
-            for v in o.values():
-                buscar_src(v)
-        elif isinstance(o, list):
-            for v in o:
-                buscar_src(v)
-    buscar_src(p["timeline"])
-
     fuentes = {}   # id -> datos
     carrera = None
     print("\nReemplazos:")
     for s in p["sourceBin"]:
         viejo = s["src"]
-        nuevo = nuevos.elegir(viejo, s["id"] in en_linea)
+        nuevo = nuevos.elegir(viejo)
         old_len = None
         for t in s["sourceTracks"]:
             if t["type"] == 0:
@@ -363,7 +500,8 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco):
                  "factor": old_w / info["w"] if old_w != info["w"] else 1.0,
                  "cambio_tam": (old_w, old_h) != (info["w"], info["h"]),
                  "imagen": all(t["type"] == 1 for t in s["sourceTracks"]),
-                 "carrera": nuevo == nuevos.video}
+                 "carrera": nuevo == nuevos.video, "archivo": nuevo,
+                 "banner": nuevo in nuevos.banners.values()}
         fuentes[s["id"]] = datos
         if datos["carrera"]:
             carrera = datos
@@ -389,6 +527,39 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco):
             if not imagen:
                 x["mediaDuration"] = d
 
+    def cuadro(u):
+        return int(round(u / FRAME)) * FRAME
+
+    def aplicar_foco(x, fuente):
+        """Reemplaza el foco de la plantilla por el paneo calculado: una animación entre cada par
+        de keyframes (lineal, para que el paneo no frene en cada uno); en los cortes, salto de 1 cuadro."""
+        par = x.setdefault("parameters", {})
+        for v in par.values():
+            if isinstance(v, dict) and v.get("keyframes"):
+                v["defaultValue"] = v["keyframes"][0]["value"]
+                del v["keyframes"]
+        escala = valor_param(par, "scale0", 1.0) * fuente["w"] / 1920.0
+        tr = lambda cx: (960.0 - cx) * escala
+        desde = x.get("mediaStart", 0)
+        kf = [(cuadro(t * ER - desde), cx, motivo) for t, cx, motivo in foco]
+        kf = [k for k in kf if 0 <= k[0] <= x["duration"]]
+        if not kf:
+            return
+        anims = []
+        for (t0, x0, _), (t1, x1, motivo) in zip(kf, kf[1:]):
+            if motivo == "corte":
+                t0 = t1 - FRAME
+            if t1 > t0 and abs(x1 - x0) >= 0.5:
+                anims.append({"endTime": t1, "time": t0, "value": tr(x1), "duration": t1 - t0})
+        t0 = par.get("translation0")
+        if not isinstance(t0, dict):
+            t0 = par["translation0"] = {"type": "double", "defaultValue": t0 or 0.0}
+        t0["defaultValue"] = tr(kf[0][1])
+        t0["interp"] = "linr"
+        t0["keyframes"] = anims
+        x["animationTracks"] = {"visual": [{"endTime": a["endTime"], "duration": a["duration"]} for a in anims]}
+        print("Foco: %d movimientos de cámara en el clip de la carrera." % len(anims))
+
     def ajustar_visual(x, fuente):
         if x.get("attributes", {}).get("ident"):
             x["attributes"]["ident"] = fuente["base"]
@@ -401,7 +572,10 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco):
         md = x.get("metadata", {})
         if fuente["cambio_tam"] and "default-width" in md and "default-height" in md:
             md["default-height"]["value"] = md["default-width"]["value"] * fuente["h"] / fuente["w"]
-        if limpiar_foco and fuente["carrera"] and x.get("_type") == "VMFile":
+        principal = not any(valor_param(x.get("parameters", {}), "geometryCrop%d" % i) for i in range(4))
+        if foco and fuente["carrera"] and x.get("_type") == "VMFile" and principal:
+            aplicar_foco(x, fuente)
+        elif limpiar_foco and fuente["carrera"] and x.get("_type") == "VMFile":
             for v in x.get("parameters", {}).values():
                 if isinstance(v, dict) and v.get("keyframes"):
                     v["defaultValue"] = v["keyframes"][0]["value"]
@@ -442,9 +616,6 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco):
                     aviso("Se recortó un clip de %s a %.1f s porque el archivo nuevo es más corto."
                           % (fuente["base"], disponible / ER))
 
-    def cuadro(u):
-        return int(round(u / FRAME)) * FRAME
-
     def repartir(medias):
         """Reubica los clips en proporción a la duración del video nuevo; el último sigue terminando al final."""
         k = NEW_END / OLD_END
@@ -471,15 +642,102 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco):
                 fijar_duracion(m, max(nueva_dur, FRAME), imagen)
             fin_viejo, fin_nuevo = ini + dur, nuevo_ini + m["duration"]
 
-    for tr in p["timeline"]["sceneTrack"]["scenes"][0]["csml"]["tracks"]:
+    ids = [0]
+
+    def max_id(o):
+        if isinstance(o, dict):
+            if isinstance(o.get("id"), int):
+                ids[0] = max(ids[0], o["id"])
+            for v in o.values():
+                max_id(v)
+        elif isinstance(o, list):
+            for v in o:
+                max_id(v)
+    max_id(p)
+
+    def armar_banners(tr):
+        """La pista de banners se arma de nuevo: un clip por banner del plan, en los tiempos del video."""
+        clips = sorted(tr["medias"], key=lambda m: m["start"])
+        k = NEW_END / OLD_END if carrera else 1
+        plan = plan_banners(nuevos, (NEW_END or clips[-1]["start"] + clips[-1]["duration"]) / ER,
+                            [m["start"] / ER for m in clips], k)
+        src_de_archivo = {}
+        for sid, f in fuentes.items():
+            src_de_archivo.setdefault(f["archivo"], sid)
+        libres, ganador = clips[:-1], clips[-1]   # en la plantilla el ganador es el último
+        armados = []
+        for rango, ini, fin in plan:
+            sid = src_de_archivo.get(nuevos.banners[rango])
+            if sid is None:
+                aviso("La plantilla no tiene dónde poner '%s'; agrégalo a mano." % nombre_rango(rango))
+                continue
+            if rango == GANADOR:
+                m = ganador
+            elif libres:
+                m = libres.pop(0)
+            else:   # carrera con más parciales que la plantilla
+                m = copy.deepcopy(armados[-1] if armados else ganador)
+                ids[0] += 1
+                m["id"] = ids[0]
+            m["src"] = sid
+            m.setdefault("attributes", {})["ident"] = fuentes[sid]["base"]
+            m["start"] = unidades(ini)
+            m["duration"] = max(unidades(fin) - m["start"], FRAME)
+            armados.append(m)
+        if not armados:
+            return
+        armados[-1]["duration"] = (NEW_END or armados[-1]["start"] + armados[-1]["duration"]) - armados[-1]["start"]
+        trans = tr.get("transitions", [])
+        entrada = next((t for t in trans if "leftMedia" not in t), None)
+        salida = next((t for t in trans if "rightMedia" not in t), None)
+        medio = next((t for t in trans if "leftMedia" in t and "rightMedia" in t), None)
+        nuevas = []
+        if entrada:
+            nuevas.append(dict(copy.deepcopy(entrada), rightMedia=armados[0]["id"]))
+        if medio:
+            for a, b in zip(armados, armados[1:]):
+                nuevas.append(dict(copy.deepcopy(medio), leftMedia=a["id"], rightMedia=b["id"]))
+        if salida:
+            nuevas.append(dict(copy.deepcopy(salida), leftMedia=armados[-1]["id"]))
+        tr["medias"] = armados
+        if "transitions" in tr:
+            tr["transitions"] = nuevas
+
+    pistas = p["timeline"]["sceneTrack"]["scenes"][0]["csml"]["tracks"]
+    es_banners = lambda tr: tr["medias"] and all(
+        m.get("_type") == "IMFile" and fuentes.get(m.get("src"), {}).get("banner") for m in tr["medias"])
+    inicios = sorted(m["start"] for tr in pistas if es_banners(tr) for m in tr["medias"])
+    primer_parcial = inicios[1] if len(inicios) > 2 else None   # en la plantilla
+
+    def anclar(medias):
+        """Mueve la pista entera para que quede a la misma distancia del primer parcial que en la plantilla."""
+        eventos = parciales_de(nuevos)
+        if not eventos or primer_parcial is None:
+            return False
+        off = cuadro(eventos[0] * ER - primer_parcial)
+        if min(m["start"] for m in medias) + off < 0 or                 max(m["start"] + m["duration"] for m in medias) + off > NEW_END:
+            return False
+        for m in medias:
+            nuevo = m["start"] + off
+            for x in partes(m):
+                x["start"] = nuevo
+        return True
+
+    como = None
+    for tr in pistas:
         recorrer(tr["medias"], True)
         con_carrera = any(fuentes.get(src_de(m), {}).get("carrera") for m in tr["medias"])
-        if carrera and OLD_END != NEW_END and not con_carrera and tr["medias"]:
-            repartir(tr["medias"])
-    if carrera and OLD_END != NEW_END:
-        print("Banners y cintillo reubicados en proporción (x%.2f); ajústalos a los parciales reales."
-              % (NEW_END / OLD_END))
-    if carrera and NEW_END < OLD_END and not limpiar_foco:
+        if es_banners(tr):
+            armar_banners(tr)
+        elif carrera and not con_carrera and tr["medias"]:
+            if anclar(tr["medias"]):
+                como = "con el primer parcial, como en la plantilla"
+            elif OLD_END != NEW_END:
+                repartir(tr["medias"])
+                como = "en proporción (x%.2f)" % (NEW_END / OLD_END)
+    if como:
+        print("Cintillo reubicado %s." % como)
+    if carrera and NEW_END < OLD_END and not limpiar_foco and not foco:
         aviso("El video nuevo es más corto: los focos de la plantilla después de %.1f s ya no aplican."
               % (NEW_END / ER))
 
@@ -525,6 +783,87 @@ def frac(s):
     return Fraction(s) if s else Fraction(0)
 
 
+def armar_banners_86(txt, pista_id, plan, fuentes, nuevos, FPS, fin_video):
+    """La pista de banners de 8.6 es [transición] banner [transición] banner ... [transición]:
+    cada transición (AudioTransition + ImageTransition) ocupa su propio espacio entre dos banners.
+    Se arma de nuevo con un banner por paso del plan; la transición queda centrada en el cambio."""
+    m = re.search(r'<GenericTrack id="%s"[^>]*>.*?</GenericTrack>' % pista_id, txt, re.S)
+    pista = m.group(0)
+    i, j = pista.index("<Medias>") + len("<Medias>"), pista.rindex("</Medias>")
+    interior = pista[i:j]
+    items = list(re.finditer(r'<(AudioTransition|ImageTransition|IMFile) id="\d+".*?</\1>', interior, re.S))
+    secuencia = []   # ["t", [bloques]] o ["c", bloque]
+    for it in items:
+        if it.group(1) == "IMFile":
+            secuencia.append(["c", it.group(0)])
+        elif secuencia and secuencia[-1][0] == "t":
+            secuencia[-1][1].append(it.group(0))
+        else:
+            secuencia.append(["t", [it.group(0)]])
+    if len(items) < 2 or not re.fullmatch(r"t(ct)+", "".join(s[0] for s in secuencia)):
+        aviso("La pista de banners de la plantilla no tiene la forma esperada; quedó como en la plantilla.")
+        return txt
+    sep = interior[items[0].end():items[1].start()]
+    pares = [s[1] for s in secuencia if s[0] == "t"]
+    clips = [s[1] for s in secuencia if s[0] == "c"]
+    TR = int(re.search(r'duration="(\d+)"', pares[0][0]).group(1))
+    h = TR // 2
+
+    ultimo_id = [max(int(x) for x in re.findall(r'\bid="(\d+)"', txt))]
+
+    def renumerar(b):
+        def otro(_):
+            ultimo_id[0] += 1
+            return 'id="%d"' % ultimo_id[0]
+        return re.sub(r'\bid="\d+"', otro, b)
+
+    def poner(b, **attrs):
+        cab = re.match(r"<[^>]*>", b).group(0)
+        cab2 = cab
+        for k, v in attrs.items():
+            cab2 = poner_attr(cab2, k, str(v))
+        return cab2 + b[len(cab):]
+
+    src_de_archivo = {}
+    for sid, f in fuentes.items():
+        src_de_archivo.setdefault(f["archivo"], sid)
+    pasos = []
+    for rango, ini, _ in plan:
+        sid = src_de_archivo.get(nuevos.banners[rango])
+        if sid is None:
+            aviso("La plantilla no tiene dónde poner '%s'; agrégalo a mano." % nombre_rango(rango))
+        else:
+            pasos.append((rango, sid, round(ini * FPS)))
+    if not pasos:
+        return txt
+
+    libres, ganador = clips[:-1], clips[-1]
+    medios = pares[1:-1]
+    bloques = []
+    for n, (rango, sid, corte) in enumerate(pasos):
+        if n == 0:
+            ini = max(corte, TR)
+            par = pares[0]
+        else:
+            ini = corte - h + TR
+            par = medios.pop(0) if medios else [renumerar(b) for b in (pares[1] if len(pares) > 2 else pares[0])]
+        fin = pasos[n + 1][2] - h if n + 1 < len(pasos) else fin_video - TR
+        bloques += [poner(b, start=ini - TR) for b in par]
+        if rango == GANADOR:
+            clip = ganador
+        elif libres:
+            clip = libres.pop(0)
+        else:   # carrera con más parciales que la plantilla
+            clip = renumerar(clips[-2] if len(clips) > 1 else ganador)
+        bloques.append(poner(clip, start=ini, duration=max(fin - ini, 1), src=sid))
+        ultimo_fin = ini + max(fin - ini, 1)
+    bloques += [poner(b, start=ultimo_fin) for b in pares[-1]]
+
+    interior2 = interior[:items[0].start()] + sep.join(bloques) + interior[items[-1].end():]
+    pista2 = pista[:i] + interior2 + pista[j:]
+    return txt[:m.start()] + pista2 + txt[m.end():]
+
+
 def procesar_86(plantilla, nuevos, salida_dir, nombre):
     with open(plantilla, "rb") as f:
         txt = f.read().decode("utf-8")
@@ -536,10 +875,9 @@ def procesar_86(plantilla, nuevos, salida_dir, nombre):
     fuentes = {}
     carrera = None
     print("\nReemplazos:")
-    en_linea = {e.get("src") for e in root.iter() if e.tag != "Source" and e.get("src")}
     for src in root.iter("Source"):
         sid, viejo = src.get("id"), src.get("src")
-        nuevo = nuevos.elegir(viejo, sid in en_linea)
+        nuevo = nuevos.elegir(viejo)
         if not nuevo:
             aviso("Sin reemplazo para: %s (queda igual)" % viejo)
             continue
@@ -584,7 +922,8 @@ def procesar_86(plantilla, nuevos, salida_dir, nombre):
         txt = txt[:m.start()] + bloque2 + txt[m.end():]
         datos = {"old": old_frames, "new": new_frames, "imagen": imagen,
                  "factor": old_w / info["w"] if old_w != info["w"] else 1.0,
-                 "carrera": nuevo == nuevos.video, "base": os.path.basename(nuevo)}
+                 "carrera": nuevo == nuevos.video, "base": os.path.basename(nuevo),
+                 "archivo": nuevo, "banner": nuevo in nuevos.banners.values()}
         fuentes[sid] = datos
         if datos["carrera"]:
             carrera = datos
@@ -597,6 +936,14 @@ def procesar_86(plantilla, nuevos, salida_dir, nombre):
 
     cambios = {}   # (tag, id) -> {attr: valor}
     escalas = []   # (tag, id, factor)
+    pista_banners = None
+    como = None
+    inicios = []
+    for track in root.iter("GenericTrack"):
+        clips = [c for c in track.iter("IMFile")]
+        if len(clips) > 2 and all(fuentes.get(c.get("src"), {}).get("banner") for c in clips):
+            inicios = sorted(int(c.get("start")) for c in clips)
+    primer_parcial = inicios[1] if inicios else None   # en la plantilla, en cuadros
 
     for track in root.iter("GenericTrack"):
         medias = track.find("Medias")
@@ -616,6 +963,10 @@ def procesar_86(plantilla, nuevos, salida_dir, nombre):
             f = fuentes.get(it["src"])
             if f and f["factor"] != 1.0 and it["tag"] in ("VMFile", "IMFile", "ScreenVMFile"):
                 escalas.append((it["tag"], it["id"], f["factor"]))
+        clips = [it for it in items if not it["trans"]]
+        if clips and all(it["tag"] == "IMFile" and fuentes.get(it["src"], {}).get("banner") for it in clips):
+            pista_banners = (track.get("id"), sorted(clips, key=lambda it: it["start"]))
+            continue   # se arma de nuevo al final, con los tiempos del video
 
         def mover_fin(it, nuevo_fin):
             viejo_fin = it["start"] + it["dur"]
@@ -678,8 +1029,17 @@ def procesar_86(plantilla, nuevos, salida_dir, nombre):
                     colocar(it, ns, nd)
 
         con_carrera = any(fuentes.get(it["src"], {}).get("carrera") for it in items)
-        if carrera and delta and not con_carrera:
-            repartir()
+        if carrera and not con_carrera and items:
+            # cintillo: a la misma distancia del primer parcial que en la plantilla, o en proporción
+            eventos = parciales_de(nuevos)
+            off = round(eventos[0] * FPS) - primer_parcial if eventos and primer_parcial is not None else None
+            if off is not None and min(it["start"] for it in items) + off >= 0 and                     max(it["start"] + it["dur"] for it in items) + off <= NEW_END:
+                for it in items:
+                    colocar(it, it["start"] + off, it["dur"])
+                como = "con el primer parcial, como en la plantilla"
+            elif delta:
+                repartir()
+                como = "en proporción (x%.2f)" % (NEW_END / OLD_END)
 
         # 1) en la pista de la carrera, lo que terminaba al final del video viejo termina al final del nuevo
         elif carrera and delta:
@@ -737,9 +1097,15 @@ def procesar_86(plantilla, nuevos, salida_dir, nombre):
         b = multiplicar_vector(b, "geometryCrop", [1 / f] * 4)
         txt = txt[:m.start()] + b + txt[m.end():]
 
-    if carrera and delta:
-        print("Banners y cintillo reubicados en proporción (x%.2f); ajústalos a los parciales reales."
-              % (NEW_END / OLD_END))
+    if pista_banners:
+        k = NEW_END / OLD_END if carrera else 1
+        clips = pista_banners[1]
+        fin = NEW_END or clips[-1]["start"] + clips[-1]["dur"]
+        plan = plan_banners(nuevos, fin / FPS, [it["start"] / FPS for it in clips], k)
+        txt = armar_banners_86(txt, pista_banners[0], plan, fuentes, nuevos, FPS, fin)
+
+    if como:
+        print("Cintillo reubicado %s." % como)
     if carrera and delta < 0:
         aviso("El video nuevo es más corto: los focos (zoom-n-pan) de la plantilla después de %.1f s ya no aplican."
               % (NEW_END / FPS))
@@ -774,6 +1140,10 @@ def main():
     ap.add_argument("--nombre", help="nombre del proyecto (por defecto '460 - 2026' según los banners)")
     ap.add_argument("--limpiar-foco", action="store_true",
                     help="solo 2026: borra los keyframes de foco del video para empezar desde cero")
+    ap.add_argument("--foco-auto", action="store_true",
+                    help="solo 2026: calcula el foco (paneo) siguiendo a los caballos en el video")
+    ap.add_argument("--vista-previa", action="store_true",
+                    help="con --foco-auto: también crea un mp4 vertical para revisar el foco")
     ap.add_argument("rutas", nargs="+", help="carpeta de banners y, opcionalmente, el video de la carrera")
     a = ap.parse_args()
 
@@ -803,10 +1173,11 @@ def main():
 
     os.makedirs(a.salida, exist_ok=True)
     if plantilla.lower().endswith(".tscproj"):
-        salida = procesar_2026(plantilla, nuevos, a.salida, nombre, a.limpiar_foco)
+        foco = calcular_foco(nuevos, a.salida, nombre, a.vista_previa) if a.foco_auto else None
+        salida = procesar_2026(plantilla, nuevos, a.salida, nombre, a.limpiar_foco, foco)
     elif plantilla.lower().endswith(".camproj"):
-        if a.limpiar_foco:
-            aviso("--limpiar-foco solo funciona con Camtasia 2026; en 8.6 se conservan los focos.")
+        if a.limpiar_foco or a.foco_auto:
+            aviso("--limpiar-foco y --foco-auto solo funcionan con Camtasia 2026; en 8.6 se conservan los focos.")
         salida = procesar_86(plantilla, nuevos, a.salida, nombre)
     else:
         sys.exit("La plantilla debe ser .camproj o .tscproj")
