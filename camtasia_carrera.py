@@ -447,6 +447,55 @@ def detectar_dividida(video):
     return tramos_de_banda([i / FPS_ANALISIS for i in range(n)], suave)
 
 
+UMBRAL_POS = 0.15                   # fracción del verde oscuro del recuadro de posiciones
+UMBRAL_POS_BLANCO = 0.03            # y del texto blanco de los nombres
+
+
+def detectar_posiciones(video, zona):
+    """[[inicio, fin]] de los tramos en que se ve la lista de posiciones de los caballos.
+
+    Se mira la zona del video que muestra el clip recortado. El recuadro de posiciones es de un
+    verde oscuro parejo con los nombres en blanco: se piden las dos cosas, porque el pasto y los
+    árboles también son verdes (pero claros, o sin texto blanco encima)."""
+    x, y, w, h = [int(round(v)) for v in zona]
+    if w < 8 or h < 8:
+        return []
+    ws, hs = max(w // 4, 8), max(h // 4, 8)
+    r = subprocess.run(["ffmpeg", "-v", "error", "-i", video, "-vf",
+                        "fps=%d,scale=1920:1080,crop=%d:%d:%d:%d,scale=%d:%d:flags=area,format=rgb24"
+                        % (FPS_ANALISIS, w, h, x, y, ws, hs),
+                        "-f", "rawvideo", "-"], capture_output=True)
+    tam = ws * hs * 3
+    verde, blanco = [], []
+    for k in range(0, len(r.stdout) - tam + 1, tam):
+        f = r.stdout[k:k + tam]
+        cv = cb = total = 0
+        for i in range(0, tam, 6):          # un píxel sí, otro no
+            g, rr, b = f[i + 1], f[i], f[i + 2]
+            total += 1
+            if g > rr + 12 and g > b + 12 and 40 < g < 130 and rr < 90 and b < 90:
+                cv += 1
+            elif rr > 190 and g > 190 and b > 190:
+                cb += 1
+        verde.append(cv / max(total, 1))
+        blanco.append(cb / max(total, 1))
+    n = len(verde)
+    mitad = DIV_VENTANA // 2
+    suave = [mediana(verde[max(0, i - mitad):i + mitad + 1]) > UMBRAL_POS
+             and mediana(blanco[max(0, i - mitad):i + mitad + 1]) > UMBRAL_POS_BLANCO
+             for i in range(n)]
+    return tramos_de_banda([i / FPS_ANALISIS for i in range(n)], suave)
+
+
+def zona_recorte(m, fuente):
+    """(x, y, ancho, alto) del video que muestra un clip recortado, o None si no tiene recorte."""
+    par = m.get("parameters", {})
+    c = [valor_param(par, "geometryCrop%d" % i) for i in range(4)]
+    if not any(c):
+        return None
+    return (c[0], c[1], fuente["w"] - c[0] - c[2], fuente["h"] - c[1] - c[3])
+
+
 def datos_carrera(nuevos):
     """Parciales, partida y pantalla dividida del video, calculados una sola vez (con cache)."""
     if hasattr(nuevos, "datos"):
@@ -491,6 +540,20 @@ def dividida_de(nuevos, foco=None):
         d["dividida"] = tramos
         guardar_cache(cache_carrera(nuevos.video), d)
     return d["dividida"]
+
+
+def posiciones_de(nuevos, zona):
+    """[[inicio, fin]] de los tramos en que se ve la lista de posiciones (el recorte que amplía el
+    clip de la pista 2). Se guarda con el resto de lo detectado en el video."""
+    d = datos_carrera(nuevos)
+    guardado = d.get("posiciones")
+    if guardado and guardado.get("zona") == [round(v, 1) for v in zona]:
+        return guardado["tramos"]
+    print("Buscando los tramos con la lista de posiciones en el video...")
+    tramos = detectar_posiciones(nuevos.video, zona)
+    d["posiciones"] = {"zona": [round(v, 1) for v in zona], "tramos": tramos}
+    guardar_cache(cache_carrera(nuevos.video), d)
+    return tramos
 
 
 def plan_banners(nuevos, fin_video, inicios_plantilla, k):
@@ -955,6 +1018,60 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None
     if fin_carrera is None:
         fin_carrera = float("inf")
 
+    # el clip recortado del video (amplía la lista de posiciones): solo se ve mientras esa lista
+    # está en pantalla, así que hay que saber qué zona del video muestra
+    pista_recorte, zona_pos = None, None
+    for tr in pistas:
+        for m in tr["medias"]:
+            f = fuentes.get(src_de(m))
+            z = zona_recorte(m, f) if f and f["carrera"] and m.get("_type") == "VMFile" else None
+            if z:
+                pista_recorte, zona_pos = tr, z
+                break
+        if zona_pos:
+            break
+    tramos_pos = posiciones_de(nuevos, zona_pos) if zona_pos else []
+
+    def armar_recorte(tr, tramos):
+        """Deja el clip recortado sólo en los tramos en que se ve la lista de posiciones."""
+        clips = sorted(tr["medias"], key=lambda m: m["start"])
+        base = clips[0]
+        ini_media, ini_linea = base.get("mediaStart", 0), base["start"]
+        trans = tr.get("transitions") or []
+        entrada = next((t for t in trans if "leftMedia" not in t), None)
+        salida = next((t for t in trans if "rightMedia" not in t), None)
+        armados = []
+        for a, b in tramos:
+            ini = cuadro((desfase + a) * ER)
+            fin = cuadro(min(desfase + b, fin_carrera) * ER)
+            if fin - ini < FPS * FRAME:          # menos de un segundo no vale la pena
+                continue
+            m = copy.deepcopy(base)
+            if armados:
+                ids[0] += 1
+                m["id"] = ids[0]
+            m["start"] = ini
+            m["duration"] = fin - ini
+            m["mediaStart"] = cuadro(ini_media + (ini - ini_linea))
+            if m["mediaStart"] < 0:                 # no se puede pedir material antes del comienzo
+                continue
+            m["mediaDuration"] = m["duration"]
+            armados.append(m)
+        if not armados:
+            aviso("No encontré la lista de posiciones en el video: el clip recortado queda como en la plantilla.")
+            return
+        tr["medias"] = armados
+        if "transitions" in tr:
+            nuevas = []
+            for m in armados:
+                if entrada:
+                    nuevas.append(dict(copy.deepcopy(entrada), rightMedia=m["id"]))
+                if salida:
+                    nuevas.append(dict(copy.deepcopy(salida), leftMedia=m["id"]))
+            tr["transitions"] = nuevas
+        print("Recorte de posiciones: %d tramo(s) (%s)."
+              % (len(armados), ", ".join("%.1f-%.1f s" % (a, b) for a, b in tramos)))
+
     for tr in pistas:
         recorrer(tr["medias"], True)
         con_carrera = any(fuentes.get(src_de(m), {}).get("carrera") for m in tr["medias"])
@@ -962,6 +1079,8 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None
             armar_banners(tr)
         elif es_cintillo_track(tr) and tramos_div:
             armar_cintillo(tr, tramos_div)
+        elif tr is pista_recorte and tramos_pos:
+            armar_recorte(tr, tramos_pos)
         elif carrera and not con_carrera and tr["medias"]:
             if anclar(tr["medias"]):
                 como = "con el primer parcial, como en la plantilla"

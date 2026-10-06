@@ -332,8 +332,9 @@ def encuadre(caballos, sentido, fase, frontal):
         if len(grandes) == 1 or area(grandes[0]) > 2 * area(grandes[1]):   # el ganador en primer plano
             return (grandes[0][0] + grandes[0][2]) / 2, "ganador"
         fase = "final"                                                   # todavía se ven varios
-    if frontal or sentido == 0:
-        return float(np.median([(c[0] + c[2]) / 2 for c in caballos])), "pelotón"
+    centro_grupo = float(np.median([(c[0] + c[2]) / 2 for c in caballos]))
+    if sentido == 0:
+        return centro_grupo, "pelotón"
     cabeza = lambda c: c[2] if sentido > 0 else c[0]
     cola = lambda c: c[0] if sentido > 0 else c[2]
     orden = sorted(caballos, key=lambda c: sentido * cabeza(c), reverse=True)
@@ -342,6 +343,10 @@ def encuadre(caballos, sentido, fase, frontal):
     if lider[2] - lider[0] > 0.9 * VENTANA:            # no entra con aire delante: centrarlo
         return centro_lider, "primer plano"
     ventaja = sentido * (cabeza(lider) - cabeza(orden[1])) if len(orden) > 1 else 1e9
+    if frontal and (fase == "previa" or ventaja < LUCHA):
+        # cámara de frente o de atrás y los caballos van juntos: se centra el grupo, la dirección no
+        # dice quién va adelante. Si uno se despegó, se lo sigue: en la recta final es lo que importa.
+        return centro_grupo, "pelotón"
     if fase == "final":
         if ventaja < LUCHA:
             a, b = cabeza(lider), cola(orden[1])
