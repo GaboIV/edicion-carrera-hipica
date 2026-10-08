@@ -776,8 +776,18 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None
         for (t0, x0, _), (t1, x1, motivo) in zip(kf, kf[1:]):
             if motivo == "corte":
                 t0 = t1 - FRAME
-            if t1 > t0 and abs(x1 - x0) >= 0.5:
-                anims.append({"endTime": t1, "time": t0, "value": tr(x1), "duration": t1 - t0})
+            if t0 < 0 or t1 <= t0 or abs(x1 - x0) < 0.5:
+                continue
+            # las animaciones tienen que ir en orden y no pisarse: un corte justo donde termina
+            # la toma anterior deja sin lugar el salto de 1 cuadro, así que se acorta el paneo
+            # anterior (si no, Camtasia no abre el proyecto).
+            if anims and t0 < anims[-1]["endTime"]:
+                if t0 > anims[-1]["time"]:
+                    anims[-1]["endTime"] = t0
+                    anims[-1]["duration"] = t0 - anims[-1]["time"]
+                else:
+                    continue
+            anims.append({"endTime": t1, "time": t0, "value": tr(x1), "duration": t1 - t0})
         t0 = par.get("translation0")
         if not isinstance(t0, dict):
             t0 = par["translation0"] = {"type": "double", "defaultValue": t0 or 0.0}
@@ -1096,8 +1106,9 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None
               % (NEW_END / ER))
 
     def revisar_proyecto():
-        """Chequeos baratos antes de guardar. El importante: un clip no puede pedir más material del
-        que tiene su archivo (Camtasia se niega a abrir el proyecto entero si eso pasa)."""
+        """Chequeos baratos antes de guardar. Los importantes: un clip no puede pedir más material
+        del que tiene su archivo, y los keyframes de una animación tienen que ir en orden y no
+        pisarse. Si algo de eso falla, Camtasia se niega a abrir el proyecto entero."""
         problemas, vistos = [], set()
 
         def duracion(x, donde):
@@ -1105,6 +1116,24 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None
             if d <= 0:
                 problemas.append("%s: duración 0" % donde)
                 return
+            for par, val in (x.get("parameters") or {}).items():
+                if not isinstance(val, dict):
+                    continue
+                fin = 0
+                for k in (val.get("keyframes") or []):
+                    t, e, du = k.get("time"), k.get("endTime"), k.get("duration")
+                    if t is None or e is None or du is None or e <= t or du != e - t:
+                        problemas.append("%s: keyframe raro en %s (%s)" % (donde, par, k))
+                        break
+                    if t < fin:
+                        problemas.append("%s: los keyframes de %s se pisan (%.2f s < %.2f s)"
+                                         % (donde, par, t / ER, fin / ER))
+                        break
+                    if e > d:
+                        problemas.append("%s: un keyframe de %s termina después del clip (%.2f s)"
+                                         % (donde, par, e / ER))
+                        break
+                    fin = e
             f = fuentes.get(x.get("src"))
             if f and f.get("len_fuente"):
                 usado = (x.get("mediaStart") or 0) + (x.get("mediaDuration") or d)
@@ -1122,8 +1151,7 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None
                     if x.get("id") in vistos:
                         problemas.append("id repetido: %s" % x.get("id"))
                     vistos.add(x.get("id"))
-                    if x.get("_type") != "UnifiedMedia":
-                        duracion(x, "clip %s (%s)" % (x.get("id"), x.get("_type")))
+                    duracion(x, "clip %s (%s)" % (x.get("id"), x.get("_type")))
 
         for tr in pistas:
             recorrer(tr["medias"])
