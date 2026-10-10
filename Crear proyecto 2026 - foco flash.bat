@@ -6,6 +6,8 @@ if "%~1"=="" (
   echo  Igual que "Crear proyecto 2026 - foco automatico", pero en version express:
   echo    - calcula el foco mucho mas rapido
   echo    - deja pocos movimientos de camara: paneos largos en vez de micro-zooms
+  echo    - en la recta final sigue al puntero dejando entrar al peloton que viene detras
+  echo    - en la meta deja el foco fijo en el arco de llegada
   echo    - el cintillo aparece solo mientras la pantalla esta dividida en dos
   echo  No crea la vista previa del foco: para eso usa el bat "foco automatico".
   echo  La primera vez que analiza una carrera tarda uno o dos minutos; despues es instantaneo.

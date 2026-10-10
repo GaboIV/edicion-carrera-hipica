@@ -26,6 +26,8 @@ import uuid
 import xml.etree.ElementTree as ET
 from fractions import Fraction
 
+AQUI = os.path.dirname(os.path.abspath(__file__))
+
 IMG_EXT = {".png", ".jpg", ".jpeg", ".bmp", ".gif"}
 VID_EXT = {".mp4", ".mov", ".mkv", ".avi", ".wmv", ".m4v", ".webm"}
 GANADOR = 1000
@@ -74,6 +76,12 @@ def rango_banner(nombre):
 
 def nombre_rango(r):
     return "ganador" if r == GANADOR else ("sin tiempos" if r == 0 else "parcial %d" % r)
+
+
+def distancia_banner(nombre):
+    """Metros del parcial que muestra el banner (C05_A460_03_1200m.png -> 1200), o None."""
+    m = re.search(r"(\d{3,4})\s*m(?:ts|etros)?\b", os.path.basename(nombre), re.I)
+    return int(m.group(1)) if m else None
 
 
 # ----------------------------------------------------------------------------
@@ -174,8 +182,25 @@ class Nuevos:
         parciales = [r for r in self.banners if 0 < r < GANADOR]
         self.n_parciales = max(parciales) if parciales else 0
         self.final = self.banners.pop(self.n_parciales) if parciales else None
+        # distancia de cada parcial (400 m, 800 m, ...): sirve para estimar los tiempos donde el
+        # canal no los muestra, repartiendo la distancia de la carrera
+        self.distancias = {}
+        for r in sorted(self.banners):
+            if not 0 < r < GANADOR:
+                continue
+            dist = distancia_banner(self.banners[r])
+            if dist:
+                self.distancias[r] = dist
+        if self.final:
+            dist = distancia_banner(self.final)
+            if dist:
+                self.distancias[self.n_parciales] = dist
         self.video = video
         self.usados = set()
+
+    def distancias_ordenadas(self):
+        """Distancias de los parciales en orden (400, 800, 1200, 1300), o [] si no se saben."""
+        return [self.distancias[r] for r in sorted(self.distancias)]
 
     def elegir(self, src_viejo):
         base = os.path.basename(src_viejo)
@@ -349,7 +374,16 @@ def parciales_de(nuevos):
 # ----------------------------------------------------------------------------
 
 VERSION_CARRERA = 1
-ZONA_DIV = (0, 578, 1920, 44)       # franja negra "SEXTA CARRERA ... INHIP" de la pantalla dividida
+# La franja de la pantalla dividida cambia de lugar (y de alto) según el hipódromo. Es la misma
+# zona que mira foco_carrera.py para decidir cuándo entra el cintillo.
+#   banda: filas donde va la franja.
+#   emite_4x3: el canal transmite en 4:3; si el archivo viene en 16:9 está estirado y hay que
+#              devolverlo a 4:3 antes de editar (ver revisar_aspecto).
+PISTAS = {
+    "rinconada": {"banda": (0, 578, 1920, 44)},
+    "valencia": {"banda": (0, 626, 1920, 34), "emite_4x3": True},
+}
+PISTA = "rinconada"
 UMBRAL_DIV = 0.4                    # fracción de píxeles negros en la franja
 DIV_VENTANA = 11                    # muestras de la mediana (a 10 por segundo: ~1 s)
 DIV_MIN = 3.0                       # s: un tramo más corto que esto es un falso positivo
@@ -422,10 +456,10 @@ def dividida_de_foco_cache(video):
     return tramos_de_banda([m["t"] for m in muestras], suave)
 
 
-def detectar_dividida(video):
-    """[[inicio, fin]] en segundos de los tramos con la pantalla dividida en dos (la franja negra
+def detectar_dividida(video, pista=PISTA):
+    """[[inicio, fin]] en segundos de los tramos con la pantalla dividida en dos (la franja oscura
     donde abajo se ve al narrador). Mismo criterio que foco_carrera.intervalos_dividida."""
-    x, y, w, h = ZONA_DIV
+    x, y, w, h = PISTAS[pista]["banda"]
     r = subprocess.run(["ffmpeg", "-v", "error", "-i", video, "-vf",
                         "fps=%d,scale=1920:1080,crop=%d:%d:%d:%d,format=gray" % (FPS_ANALISIS, w, h, x, y),
                         "-f", "rawvideo", "-"], capture_output=True)
@@ -527,7 +561,7 @@ def datos_carrera(nuevos):
     return d
 
 
-def dividida_de(nuevos, foco=None):
+def dividida_de(nuevos, foco=None, pista=PISTA):
     """[[inicio, fin]] de los tramos de pantalla dividida (donde va el cintillo)."""
     if foco and foco.get("dividida") is not None:
         return foco["dividida"]
@@ -536,10 +570,118 @@ def dividida_de(nuevos, foco=None):
         tramos = dividida_de_foco_cache(nuevos.video)
         if tramos is None:
             print("Buscando los tramos de pantalla dividida en el video...")
-            tramos = detectar_dividida(nuevos.video)
+            tramos = detectar_dividida(nuevos.video, pista)
         d["dividida"] = tramos
         guardar_cache(cache_carrera(nuevos.video), d)
     return d["dividida"]
+
+
+# ----------------------------------------------------------------------------
+# Formato del video: los canales en 4:3 que llegan estirados a 16:9 se devuelven a 4:3
+# ----------------------------------------------------------------------------
+
+def barras_laterales(video, ancho=320, alto=180, umbral=30):
+    """¿El cuadro trae barras negras a los costados? (el canal 4:3 metido en un cuadro 16:9)."""
+    r = subprocess.run(["ffmpeg", "-v", "error", "-i", video, "-vf",
+                        "fps=1,scale=%d:%d:flags=area,format=gray" % (ancho, alto),
+                        "-f", "rawvideo", "-"], capture_output=True)
+    tam = ancho * alto
+    cuadros = [r.stdout[i:i + tam] for i in range(0, len(r.stdout) - tam + 1, tam)]
+    if not cuadros:
+        return False
+    cols = 20                       # 20 de 320 columnas a cada lado
+    negras = 0
+    for f in cuadros:
+        izq = [f[y * ancho + x] for y in range(alto) for x in range(cols)]
+        der = [f[y * ancho + ancho - cols + x] for y in range(alto) for x in range(cols)]
+        if sum(izq) / len(izq) < umbral and sum(der) / len(der) < umbral:
+            negras += 1
+    return negras >= max(2, len(cuadros) - 1)
+
+
+def videos_en_43(carpeta):
+    """Videos de la carpeta que ya están en 4:3 (por ejemplo el restaurado de Valencia)."""
+    salida = []
+    for f in sorted(os.listdir(carpeta)):
+        if ext_de(f) not in VID_EXT or es_cintillo(f) or es_generado(f):
+            continue
+        ruta = os.path.join(carpeta, f)
+        try:
+            info = probe(ruta)
+        except SystemExit:
+            continue
+        if abs(info["w"] / float(info["h"]) - 4 / 3.0) < 0.05:
+            salida.append(ruta)
+    return salida
+
+
+def restaurar_4x3(video, pista):
+    """Devuelve una copia en 4:3 del video. Si está el restaurador del hipódromo (por ejemplo
+    restaurar_valencia.py, que además mejora la imagen) se usa ese; si no, se comprime a lo ancho."""
+    carpeta, nombre = os.path.split(video)
+    base = os.path.splitext(nombre)[0]
+    restaurador = os.path.join(AQUI, "restaurar_%s.py" % pista.replace("-", "_"))
+    if os.path.exists(restaurador):
+        print("El canal emite en 4:3 y el video vino estirado a 16:9: lo paso a 4:3 con %s"
+              % os.path.basename(restaurador))
+        sys.stdout.flush()
+        if subprocess.run([sys.executable, restaurador, video]).returncode == 0:
+            nuevos = [os.path.join(carpeta, f) for f in os.listdir(carpeta)
+                      if ext_de(f) in VID_EXT and "enhanced" in f.lower()
+                      and os.path.getmtime(os.path.join(carpeta, f)) >= os.path.getmtime(video)]
+            if nuevos:
+                return max(nuevos, key=os.path.getmtime)
+    info = probe(video)
+    w, h = info["w"], info["h"]
+    ancho = int(round((h if h % 2 == 0 else h + 1) * 4 / 3.0 / 2.0)) * 2
+    destino = os.path.join(carpeta, base + " - 4x3.mp4")
+    r = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", video,
+                        "-vf", "scale=%d:%d:flags=lanczos" % (ancho, h),
+                        "-c:v", "libx264", "-crf", "18", "-preset", "veryfast",
+                        "-pix_fmt", "yuv420p", "-c:a", "copy", destino])
+    if r.returncode or not os.path.exists(destino):
+        return None
+    return destino
+
+
+def revisar_aspecto(video, pista=PISTA):
+    """Deja el video en el formato en que emite el canal. Devuelve (video a usar, nota).
+
+    Valencia emite en 4:3 pero los archivos suelen venir estirados a 16:9. Antes de empezar se
+    valida el formato del video: si ya está en 4:3 (o hay otro video de la carpeta que lo esté,
+    como el restaurado) se usa ese; si viene estirado, se lo devuelve a 4:3 y se sigue con esa copia."""
+    if not PISTAS[pista].get("emite_4x3"):
+        return video, None
+    info = probe(video)
+    w, h = info["w"], info["h"]
+    aspecto = w / float(h)
+    if abs(aspecto - 4 / 3.0) / (4 / 3.0) < 0.08:
+        return video, "el video ya está en 4:3 (%dx%d): no hay que corregirlo" % (w, h)
+    if abs(aspecto - 16 / 9.0) / (16 / 9.0) > 0.08:
+        aviso("El video es %dx%d (%.2f) y el canal emite en 4:3: lo dejo como está, revísalo."
+              % (w, h, aspecto))
+        return video, None
+    otros = [v for v in videos_en_43(os.path.dirname(video)) if os.path.abspath(v) != os.path.abspath(video)]
+    if otros:
+        mejor = max(otros, key=os.path.getmtime)
+        return mejor, "uso el video que ya está en 4:3 (%s)" % os.path.basename(mejor)
+    if barras_laterales(video):          # el 4:3 vino dentro del cuadro 16:9: se recortan las barras
+        ancho = int(round((h if h % 2 == 0 else h + 1) * 4 / 3.0 / 2.0)) * 2
+        destino = os.path.join(os.path.dirname(video), os.path.splitext(os.path.basename(video))[0] + " - 4x3.mp4")
+        print("El video trae barras negras a los costados: recorto el 4:3 a %dx%d..." % (ancho, h))
+        r = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", video,
+                            "-vf", "crop=%d:%d,scale=%d:%d" % (ancho, h, ancho, h),
+                            "-c:v", "libx264", "-crf", "18", "-preset", "veryfast",
+                            "-pix_fmt", "yuv420p", "-c:a", "copy", destino])
+        if not r.returncode and os.path.exists(destino):
+            return destino, "el 4:3 venía con barras negras: las recorté (%s)" % os.path.basename(destino)
+        aviso("No pude recortar las barras; sigo con el original.")
+        return video, None
+    destino = restaurar_4x3(video, pista)
+    if not destino:
+        aviso("No pude pasar el video a 4:3; sigo con el original (queda estirado).")
+        return video, None
+    return destino, "el video venía estirado a 16:9: lo devolví a 4:3 (%s)" % os.path.basename(destino)
 
 
 def posiciones_de(nuevos, zona):
@@ -556,12 +698,13 @@ def posiciones_de(nuevos, zona):
     return tramos
 
 
-def plan_banners(nuevos, fin_video, inicios_plantilla, k):
+def plan_banners(nuevos, fin_video, inicios_plantilla, k, estimados=None):
     """[(rango, inicio, fin)] en segundos. inicios_plantilla: dónde empiezan los banners en la plantilla;
-    k: duración del video nuevo / la de la plantilla (para el respaldo proporcional)."""
+    k: duración del video nuevo / la de la plantilla (para el respaldo proporcional).
+    estimados: tiempos de los parciales calculados por distancia, cuando el canal no los muestra."""
     parciales = sorted(r for r in nuevos.banners if 0 < r < GANADOR)
     n = nuevos.n_parciales
-    eventos = parciales_de(nuevos)
+    eventos = parciales_de(nuevos) or (estimados or None)
     tiempos = {0: inicios_plantilla[0] * k}
     if eventos:
         # "sin tiempos" entra con la misma anticipación al primer parcial que en la plantilla
@@ -594,11 +737,10 @@ def plan_banners(nuevos, fin_video, inicios_plantilla, k):
 # (con YOLO); no depende de nada instalado fuera de esta carpeta
 # ----------------------------------------------------------------------------
 
-AQUI = os.path.dirname(os.path.abspath(__file__))
 PYTHON_VISION = os.path.join(AQUI, ".python-vision", "cpython-3.12.15-windows-x86_64-none", "python.exe")
 
 
-def calcular_foco(nuevos, carpeta_salida, nombre, vista_previa, flash=False):
+def calcular_foco(nuevos, carpeta_salida, nombre, vista_previa, flash=False, pista=PISTA):
     """Datos del foco: keyframes [segundo del video, x del centro en un cuadro de 1920, motivo] y
     los tramos de pantalla dividida; o None si no se pudo calcular."""
     if not os.path.exists(PYTHON_VISION):
@@ -608,7 +750,10 @@ def calcular_foco(nuevos, carpeta_salida, nombre, vista_previa, flash=False):
     eventos = parciales_de(nuevos) or []
     salida = os.path.join(carpeta_salida, nombre + " - foco.json")
     cmd = [PYTHON_VISION, os.path.join(AQUI, "foco_carrera.py"), nuevos.video, "--salida", salida,
-           "--parciales", ",".join("%.2f" % t for t in eventos)]
+           "--parciales", ",".join("%.2f" % t for t in eventos), "--pista", pista]
+    distancias = nuevos.distancias_ordenadas()
+    if distancias:
+        cmd += ["--distancias", ",".join("%d" % d for d in distancias)]
     if getattr(nuevos, "partida", None) is not None:
         cmd += ["--partida", "%.2f" % nuevos.partida]
     if flash:
@@ -648,7 +793,7 @@ def valor_param(params, nombre, defecto=0.0):
     return v.get("defaultValue", defecto) if isinstance(v, dict) else v
 
 
-def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None):
+def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None, pista=PISTA):
     with open(plantilla, encoding="utf-8-sig") as f:
         p = json.load(f)
     dir_plantilla = os.path.dirname(os.path.abspath(plantilla))
@@ -897,7 +1042,8 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None
         clips = sorted(tr["medias"], key=lambda m: m["start"])
         k = NEW_END / OLD_END if carrera else 1
         plan = plan_banners(nuevos, (NEW_END or clips[-1]["start"] + clips[-1]["duration"]) / ER,
-                            [m["start"] / ER for m in clips], k)
+                            [m["start"] / ER for m in clips], k,
+                            (foco or {}).get("parciales") if (foco or {}).get("parciales_estimados") else None)
         src_de_archivo = {}
         for sid, f in fuentes.items():
             src_de_archivo.setdefault(f["archivo"], sid)
@@ -962,7 +1108,7 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None
 
     como = None
     cintillos = set(nuevos.cintillos)
-    tramos_div = dividida_de(nuevos, foco) if cintillos else []
+    tramos_div = dividida_de(nuevos, foco, pista) if cintillos else []
 
     def es_cintillo_track(tr):
         return bool(tr["medias"]) and all(
@@ -1571,12 +1717,18 @@ def main():
                     help="con --foco-auto: versión rápida, con muchos menos movimientos de cámara")
     ap.add_argument("--vista-previa", action="store_true",
                     help="con --foco-auto: también crea un mp4 vertical para revisar el foco")
+    ap.add_argument("--pista", default=None, choices=sorted(PISTAS),
+                    help="hipódromo: define dónde está la franja de la pantalla dividida y el formato "
+                         "del video (por defecto se deduce del nombre de la plantilla)")
     ap.add_argument("rutas", nargs="+", help="carpeta de banners y, opcionalmente, el video de la carrera")
     a = ap.parse_args()
 
     plantilla = os.path.abspath(a.plantilla)
     if os.path.isdir(plantilla):  # carpeta .tscproj de 2026
         plantilla = os.path.join(plantilla, os.path.basename(plantilla))
+    # la plantilla dice de qué hipódromo es (plantilla-2026-valencia.tscproj -> valencia)
+    if not a.pista:
+        a.pista = next((p for p in sorted(PISTAS) if p in os.path.basename(plantilla).lower()), PISTA)
     a.rutas = [os.path.abspath(r.strip('"')) for r in a.rutas]
     carpetas = [r for r in a.rutas if os.path.isdir(r)]
     if not carpetas:
@@ -1592,16 +1744,19 @@ def main():
     nuevos.video = buscar_video(a.rutas, carpetas + [carpeta], numero)
     if not nuevos.video:
         sys.exit("No encontré el video de la carrera. Arrástralo junto con la carpeta.")
+    nuevos.video, nota_formato = revisar_aspecto(nuevos.video, a.pista)
     nombre = a.nombre or nombre
     print("Video:    %s" % nuevos.video)
+    if nota_formato:
+        print("Formato:  %s" % nota_formato)
     print("Proyecto: %s" % nombre)
     print("Banners detectados: " + ", ".join(
         "%s=%s" % (nombre_rango(r), os.path.basename(f)) for r, f in sorted(nuevos.banners.items())))
 
     os.makedirs(a.salida, exist_ok=True)
     if plantilla.lower().endswith(".tscproj"):
-        foco = calcular_foco(nuevos, a.salida, nombre, a.vista_previa, a.flash) if a.foco_auto else None
-        salida = procesar_2026(plantilla, nuevos, a.salida, nombre, a.limpiar_foco, foco)
+        foco = calcular_foco(nuevos, a.salida, nombre, a.vista_previa, a.flash, a.pista) if a.foco_auto else None
+        salida = procesar_2026(plantilla, nuevos, a.salida, nombre, a.limpiar_foco, foco, a.pista)
     elif plantilla.lower().endswith(".camproj"):
         if a.limpiar_foco or a.foco_auto or a.flash:
             aviso("--limpiar-foco, --foco-auto y --flash solo funcionan con Camtasia 2026; en 8.6 se conservan los focos.")
