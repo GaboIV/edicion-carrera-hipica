@@ -788,7 +788,8 @@ def calcular(d, parciales, partida=0.0, flash=False, recta=None, pista=PISTA):
 
     lejos_arr = mediana_movil([1.0 if x["lejos"] else 0.0 for x in instantes], 7) > 0.5 if instantes else []
     for x, lj in zip(instantes, lejos_arr):
-        x["zoom"] = ZOOM_LEJOS if (flash and lj and x["t"] < inicio_final) else 1.0
+        x["lejos"] = bool(flash and lj and x["t"] < inicio_final)
+        x["zoom"] = 1.0
 
     # 2) sentido de carrera y cámara de frente, mirando ±2.0 s alrededor
     ts = np.array([x["t"] for x in instantes])
@@ -831,8 +832,8 @@ def calcular(d, parciales, partida=0.0, flash=False, recta=None, pista=PISTA):
                 cx, motivo, fase, fijo = xp, "meta", "meta", True
         else:
             fijo = False
-            cx, motivo = encuadre(x["caballos"], x["sentido"], fase, x["frontal"] or fase == "previa", x["zoom"])
-        serie.append([t, cx, motivo, fase, x["zoom"]])
+            cx, motivo = encuadre(x["caballos"], x["sentido"], fase, x["frontal"] or fase == "previa")
+        serie.append([t, cx, motivo, fase, x["lejos"]])
     seguidas = 0
     for p, x in zip(serie, instantes):          # partida: alguien quedó muy atrás 3 muestras seguidas
         if p[3] != "partida":
@@ -880,9 +881,8 @@ def calcular(d, parciales, partida=0.0, flash=False, recta=None, pista=PISTA):
 # Suavizado y keyframes
 # ----------------------------------------------------------------------------
 
-def limitar(x, zoom=1.0):
-    mitad = MITAD / zoom
-    return float(min(max(x, mitad), W - mitad))
+def limitar(x):
+    return float(min(max(x, MITAD), W - MITAD))
 
 
 def rdp(puntos, tol):
@@ -901,14 +901,14 @@ def rdp(puntos, tol):
 
 
 def suavizar(tramo, a, flash=False):
-    """Keyframes [t, x, motivo, zoom] de una toma: sin temblores y con velocidad de paneo limitada."""
+    """Keyframes [t, x, motivo] de una toma: sin temblores y con velocidad de paneo limitada."""
     ts = [p[0] for p in tramo]
     xs = [p[1] for p in tramo]
     visita = [p[2] == "partió mal" for p in tramo]
     fijo = [p[2] == "meta" for p in tramo]
     fases = [p[3] for p in tramo]
-    zooms = [p[4] if len(p) > 4 else 1.0 for p in tramo]
-    tipo_tramo = [("meta" if fijo[i] else ("recta" if fases[i] == "final" else ("lejos" if zooms[i] > 1.01 else "normal")))
+    lejos = [bool(p[4]) if len(p) > 4 else False for p in tramo]
+    tipo_tramo = [("meta" if fijo[i] else ("recta" if fases[i] == "final" else ("lejos" if lejos[i] else "normal")))
                   for i in range(len(tramo))]
     # la mediana se aplica por separado antes de la meta, en la recta, en la meta y después
     m = []
@@ -924,13 +924,11 @@ def suavizar(tramo, a, flash=False):
             rapido = 3 if visita[i] or visita[j] else (2 if entra else 1)
             lim = VEL_MAX * rapido * abs(ts[i] - ts[j])
             m[i] = m[j] + max(-lim, min(lim, m[i] - m[j]))
-    puntos = [(round(t, 3), round(limitar(x, z), 1)) for t, x, z in zip(ts, m, zooms)]
+    puntos = [(round(t, 3), round(limitar(x), 1)) for t, x in zip(ts, m)]
     puntos[0] = (round(a, 3), puntos[0][1])
     motivo = {round(p[0], 3): p[2] for p in tramo}
-    zoom_map = {round(p[0], 3): (p[4] if len(p) > 4 else 1.0) for p in tramo}
-    zoom_map[round(a, 3)] = zooms[0]
     if not flash:
-        return [[t, x, motivo.get(t, ""), round(zoom_map.get(t, 1.0), 4)] for t, x in rdp(puntos, TOLERANCIA)]
+        return [[t, x, motivo.get(t, "")] for t, x in rdp(puntos, TOLERANCIA)]
     # flash: pocos movimientos de cámara, largos y parejos. En la recta final se sigue de cerca al
     # puntero y pelotón; en la meta el foco queda fijo en el arco/poste de llegada.
     kf = []
@@ -952,7 +950,7 @@ def suavizar(tramo, a, flash=False):
             objetivo = max(2, int(round((pedazo[-1][0] - pedazo[0][0]) / SEG_MIN_FLASH)) + 1)
             pedazo = decimar(decimar(pedazo, TOL_FLASH, len(pedazo)), TOL_MAX_FLASH, objetivo)
         kf += pedazo if not kf else pedazo[1:] if kf[-1] == pedazo[0] else pedazo
-    return [[t, x, motivo.get(t, ""), round(zoom_map.get(t, 1.0), 4)] for t, x in kf]
+    return [[t, x, motivo.get(t, "")] for t, x in kf]
 
 
 def tramos_iguales(v):

@@ -955,43 +955,30 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None
         return int(round(u / FRAME)) * FRAME
 
     def aplicar_foco(x, fuente):
-        """Reemplaza el foco de la plantilla por el paneo calculado: soporta zoom dinámico (tomas lejanas)
-        y transiciones cortas tipo Camtasia Zoom-n-Pan en modo flash."""
+        """Reemplaza el foco de la plantilla por el paneo horizontal calculado (sin hacer zoom,
+        abarcando siempre todo el alto del video de arriba abajo)."""
         par = x.setdefault("parameters", {})
         for v in par.values():
             if isinstance(v, dict) and v.get("keyframes"):
                 v["defaultValue"] = v["keyframes"][0]["value"]
                 del v["keyframes"]
-        escala_base = valor_param(par, "scale0", 1920.0 / 1080.0)
+        escala_base = float(H) / float(fuente["h"])
+        par["scale0"] = escala_base
+        par["scale1"] = escala_base
+        par["translation1"] = 0.0
         ancho_foco = float(foco.get("ancho") or 1920.0)
+        escala = escala_base * (fuente["w"] / ancho_foco)
+        tr = lambda cx: (ancho_foco / 2.0 - cx) * escala
         es_flash = bool(foco.get("flash"))
         dur_trans = ER  # 1.0 s para transiciones suaves tipo Camtasia en modo flash
 
-        def sc_val(z):
-            return escala_base * z
-
-        def tr0_val(cx, z):
-            escala = sc_val(z) * (fuente["w"] / ancho_foco)
-            return (ancho_foco / 2.0 - cx) * escala
-
-        def tr1_val(z):
-            # Al ampliar (z > 1) en la curva lejana, desplaza hacia arriba para mantener a los caballos en centro
-            if abs(z - 1.0) <= 1e-4:
-                return 0.0
-            return (fuente["h"] / 2.0) * escala_base * (z - 1.0)
-
         desde = x.get("mediaStart", 0)
-        kf = []
-        for item in foco["keyframes"]:
-            t, cx, motivo = item[0], item[1], item[2]
-            z = float(item[3]) if len(item) > 3 else 1.0
-            kf.append((cuadro(t * ER - desde), cx, motivo, z))
+        kf = [(cuadro(item[0] * ER - desde), item[1], item[2]) for item in foco["keyframes"]]
         kf = [k for k in kf if 0 <= k[0] <= x["duration"]]
         if not kf:
             return
-        tiene_zoom = any(abs(k[3] - 1.0) > 1e-3 for k in kf)
-        anims_t0, anims_t1, anims_s0, anims_s1 = [], [], [], []
-        for (t0_kf, x0, _, z0), (t1_kf, x1, motivo, z1) in zip(kf, kf[1:]):
+        anims = []
+        for (t0_kf, x0, _), (t1_kf, x1, motivo) in zip(kf, kf[1:]):
             if motivo == "corte":
                 t0 = t1_kf - FRAME
             elif es_flash:
@@ -999,39 +986,24 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None
             else:
                 t0 = t0_kf
             t1 = t1_kf
-            if t0 < 0 or t1 <= t0 or (abs(x1 - x0) < 0.5 and abs(z1 - z0) < 1e-3):
+            if t0 < 0 or t1 <= t0 or abs(x1 - x0) < 0.5:
                 continue
             # las animaciones tienen que ir en orden y no pisarse
-            for lista in (anims_t0, anims_t1, anims_s0, anims_s1):
-                if lista and t0 < lista[-1]["endTime"]:
-                    if t0 > lista[-1]["time"]:
-                        lista[-1]["endTime"] = t0
-                        lista[-1]["duration"] = t0 - lista[-1]["time"]
-            if anims_t0 and t0 < anims_t0[-1]["endTime"]:
-                continue
-            dur = t1 - t0
-            anims_t0.append({"endTime": t1, "time": t0, "value": tr0_val(x1, z1), "duration": dur})
-            if tiene_zoom:
-                anims_t1.append({"endTime": t1, "time": t0, "value": tr1_val(z1), "duration": dur})
-                anims_s0.append({"endTime": t1, "time": t0, "value": sc_val(z1), "duration": dur})
-                anims_s1.append({"endTime": t1, "time": t0, "value": sc_val(z1), "duration": dur})
-
-        def fijar_param_anim(nombre, val_ini, lista_anims):
-            p_obj = par.get(nombre)
-            if not isinstance(p_obj, dict):
-                p_obj = par[nombre] = {"type": "double", "defaultValue": p_obj if p_obj is not None else val_ini}
-            p_obj["defaultValue"] = val_ini
-            p_obj["interp"] = "linr"
-            p_obj["keyframes"] = lista_anims
-
-        x0_ini, z0_ini = kf[0][1], kf[0][3]
-        fijar_param_anim("translation0", tr0_val(x0_ini, z0_ini), anims_t0)
-        if tiene_zoom:
-            fijar_param_anim("translation1", tr1_val(z0_ini), anims_t1)
-            fijar_param_anim("scale0", sc_val(z0_ini), anims_s0)
-            fijar_param_anim("scale1", sc_val(z0_ini), anims_s1)
-        x["animationTracks"] = {"visual": [{"endTime": a["endTime"], "duration": a["duration"]} for a in anims_t0]}
-        print("Foco: %d movimientos de cámara en el clip de la carrera." % len(anims_t0))
+            if anims and t0 < anims[-1]["endTime"]:
+                if t0 > anims[-1]["time"]:
+                    anims[-1]["endTime"] = t0
+                    anims[-1]["duration"] = t0 - anims[-1]["time"]
+                else:
+                    continue
+            anims.append({"endTime": t1, "time": t0, "value": tr(x1), "duration": t1 - t0})
+        t0_obj = par.get("translation0")
+        if not isinstance(t0_obj, dict):
+            t0_obj = par["translation0"] = {"type": "double", "defaultValue": t0_obj or 0.0}
+        t0_obj["defaultValue"] = tr(kf[0][1])
+        t0_obj["interp"] = "linr"
+        t0_obj["keyframes"] = anims
+        x["animationTracks"] = {"visual": [{"endTime": a["endTime"], "duration": a["duration"]} for a in anims]}
+        print("Foco: %d movimientos de cámara en el clip de la carrera." % len(anims))
 
     def ajustar_visual(x, fuente):
         if x.get("attributes", {}).get("ident"):
