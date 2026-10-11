@@ -47,7 +47,7 @@ MODELO = "yolo11s.pt"
 IMGSZ = 1280
 CONF = 0.25
 PERSONA, CABALLO = 0, 17          # clases de COCO
-VERSION = 2                       # cambia si cambia lo que se guarda en el análisis
+VERSION = 3                       # cambia si cambia lo que se guarda en el análisis
 
 # El perfil "flash" mira menos cuadros y con menos resolución: sigue a los caballos casi igual
 # pero tarda una fracción. Además deja pocos movimientos de cámara (ver reducir()).
@@ -56,8 +56,10 @@ PERFILES = {
     "flash": {"modelo": MODELO, "imgsz": 960, "paso_deteccion": 12, "escala": 0.5, "lote": 8},
 }
 
-W, H = 1920, 1080                 # el análisis se hace en coordenadas de un cuadro 1920x1080
+W, H = 1920, 1080                 # el análisis se hace a alto 1080 y ancho proporcional al video (1920 o 1440)
 ESCALA = 1920 / 1080              # escala del video en el proyecto vertical
+ESCALA_LEJOS = 2.858166           # escala en tomas panorámicas lejanas de la curva
+ZOOM_LEJOS = ESCALA_LEJOS / ESCALA
 VENTANA = 1080 / ESCALA           # ancho visible del original (~607 px)
 MITAD = VENTANA / 2
 PASO_ANALISIS = 3                 # cuadros: histograma y pantalla dividida (~10/s)
@@ -94,14 +96,14 @@ MEDIANA_FLASH = 15                # muestras: suavizado más ancho (~6 s)
 TOL_META = 12.0                   # px: en la meta el foco sigue al poste casi exacto (queda fijo en el arco)
 
 # Recta final y meta (perfil flash): una pasada liviana extra sobre el final del video
-VERSION_RECTA = 2                 # cambia si cambia lo que guarda analizar_recta()
+VERSION_RECTA = 3                 # cambia si cambia lo que guarda analizar_recta()
 RECTA_FPS = 2.5                   # muestras por segundo de la pasada
-RECTA_ESCALA = 0.5                # la pasada se hace a 960x540
+RECTA_ESCALA = 0.5                # la pasada se hace a media resolución
 RECTA_ANTES = 25.0                # s antes del penúltimo parcial desde donde se busca la recta
 RECTA_MAX = 35.0                  # s: la toma de la recta no se estira más atrás que esto desde la meta
-RECTA_MIN = 6.0                   # s: si la toma detectada es más corta, la recta empieza en el penúltimo parcial
+RECTA_MIN = 5.5                   # s: si la toma detectada es más corta, la recta empieza en el penúltimo parcial
 RIEL_MAX = 22.0                   # °: inclinación máxima de la baranda en la toma de la recta
-RIEL_SALTO = 4.0                  # °: cambio de inclinación entre dos muestras que indica otra toma
+RIEL_SALTO = 12.0                 # °: cambio brusco de inclinación entre dos muestras que indica otra toma
 POSTE_SALTO = 0.9 * VENTANA       # px: lo más que se mueve el poste entre dos muestras (la cámara panea rápido)
 POSTE_QUIETO = 0.2 * VENTANA      # px: cuánto se aparta el poste de donde quedó la cámara sin dejar la meta
 POSTE_MIN = 4                     # muestras con el poste quieto para aceptar que es la meta
@@ -114,6 +116,18 @@ DIV_MARGEN = 0.3                  # s: el cintillo entra un poco antes y sale un
 # ----------------------------------------------------------------------------
 # Lectura del video: un solo recorrido
 # ----------------------------------------------------------------------------
+
+def dimensiones_video(video):
+    """(ancho a alto 1080 respetando el aspecto del video, fps, total de cuadros)."""
+    c = cv2.VideoCapture(video)
+    w = c.get(cv2.CAP_PROP_FRAME_WIDTH) or 1920
+    h = c.get(cv2.CAP_PROP_FRAME_HEIGHT) or 1080
+    fps = c.get(cv2.CAP_PROP_FPS) or 30.0
+    total = int(c.get(cv2.CAP_PROP_FRAME_COUNT))
+    c.release()
+    ancho = int(round(w * H / float(h) / 2.0)) * 2
+    return ancho, fps, total
+
 
 def identidad(video):
     """Datos del archivo: lo que hace que un análisis guardado siga sirviendo."""
@@ -141,7 +155,7 @@ def leer_cuadros(video, escala):
                 ok, f = cap.read()
                 if not ok:
                     break
-                if f.shape[1] != W:
+                if f.shape[1] != W or f.shape[0] != H:
                     f = cv2.resize(f, (W, H))
                 yield f
         finally:
@@ -177,10 +191,8 @@ def analizar(video, perfil=None, fps=None, total=0, pista=PISTA):
     paso = max(int(round(4 * esc)), 1)                  # muestreo de histograma y de la franja
     modelo = YOLO(os.path.join(AQUI, "modelos", perfil["modelo"]))
     if fps is None or not total:
-        c = cv2.VideoCapture(video)
-        fps = fps or c.get(cv2.CAP_PROP_FPS) or 30.0
-        total = int(c.get(cv2.CAP_PROP_FRAME_COUNT))
-        c.release()
+        _, fps_v, total = dimensiones_video(video)
+        fps = fps or fps_v
     previo = previo_hist = None
     mad, muestras, detecciones = [], [], []
     lote, pendientes, avisado = [], [], [0]
@@ -225,12 +237,12 @@ def analizar(video, perfil=None, fps=None, total=0, pista=PISTA):
                                                         else "%.0f s" % t), flush=True)
         i += 1
     detectar()
-    return {"fps": fps, "duracion": i / fps, "mad": mad, "muestras": muestras, "detecciones": detecciones}
+    return {"fps": fps, "duracion": i / fps, "ancho": W, "mad": mad, "muestras": muestras, "detecciones": detecciones}
 
 
 def sirve(d, video, perfil, pista=PISTA):
     """¿El análisis guardado alcanza para el perfil que se pide? (mismo modelo, igual o mejor calidad)"""
-    if d.get("pista", PISTA) != pista:          # cada hipódromo mira franjas y zonas distintas
+    if d.get("pista", PISTA) != pista or d.get("ancho", 1920) != W or d.get("version", 2) != VERSION:
         return False
     if d.get("perfil"):
         if d.get("identidad") != identidad(video):
@@ -246,7 +258,9 @@ def sirve(d, video, perfil, pista=PISTA):
 
 
 def cargar_o_analizar(video, perfil=None, pista=PISTA):
+    global W
     perfil = perfil or PERFILES["normal"]
+    W, fps, total = dimensiones_video(video)
     cache = os.path.splitext(video)[0] + ".foco-cache.json"
     if os.path.exists(cache):
         with open(cache, encoding="utf-8") as fh:
@@ -255,14 +269,11 @@ def cargar_o_analizar(video, perfil=None, pista=PISTA):
             print("  usando el análisis guardado (%s)" % os.path.basename(cache))
             return d
     print("  analizando el video (la primera vez tarda unos minutos)...")
-    c = cv2.VideoCapture(video)
-    fps = c.get(cv2.CAP_PROP_FPS) or 30.0
-    total = int(c.get(cv2.CAP_PROP_FRAME_COUNT))
-    c.release()
     d = analizar(video, perfil, fps, total, pista)
     d["identidad"] = identidad(video)
     d["perfil"] = dict(perfil)
     d["pista"] = pista
+    d["version"] = VERSION
     d["huella"] = huella(video)
     with open(cache, "w", encoding="utf-8") as fh:
         json.dump(d, fh)
@@ -276,8 +287,8 @@ def cargar_o_analizar(video, perfil=None, pista=PISTA):
 # La recta se transmite con una sola toma larga desde la tribuna: la cámara sigue a los caballos y
 # la baranda blanca, que en la curva se ve inclinada (~16°), se va acostando hasta quedar horizontal
 # en la meta. Esa toma termina en la meta: la cámara se queda quieta con el arco de llegada en
-# cuadro y, en el medio del arco, el poste de llegada a franjas rojas y blancas. El poste es lo que
-# se busca (el arco puede no estar en carreras que no son clásicos; el poste está siempre).
+# cuadro y, en el medio del arco, el poste de llegada a franjas rojas y blancas (La Rinconada) o el
+# arco verde-azulado en herradura con letras blancas (Valencia).
 
 def segmentos(v):
     """(valor, inicio, largo) de cada tramo de valores iguales de un vector."""
@@ -286,10 +297,42 @@ def segmentos(v):
     return zip(v[ini], ini, np.diff(np.r_[ini, len(v)]))
 
 
-def postes_meta(f):
-    """x (en un cuadro de 1920) de los postes a franjas rojas y blancas del cuadro: columnas angostas
-    donde se alternan rojo y blanco al menos 4 veces, con franjas parejas (las de las puntas pueden
-    ser largas: el poste suele terminar en un tramo blanco)."""
+def detectar_arco_valencia(f):
+    """x (en coordenadas de ancho W) del arco de llegada de Valencia (herradura verde-azulada con
+    letras blancas y cartel central LLEGADA), o [] si no está en cuadro."""
+    alto, ancho = f.shape[:2]
+    hsv = cv2.cvtColor(f, cv2.COLOR_BGR2HSV)
+    hsv[:int(0.14 * alto), :int(0.24 * ancho)] = 0      # logo arriba a la izquierda
+    hsv[:int(0.20 * alto), int(0.58 * ancho):] = 0      # gráfica arriba a la derecha
+    zona = hsv[int(0.06 * alto):int(0.48 * alto)]
+    h, s, v = zona[..., 0], zona[..., 1], zona[..., 2]
+    teal = ((h >= 75) & (h <= 98) & (s >= 85) & (v >= 50) & (v <= 190)).astype(np.uint8)
+    blanco = ((s <= 60) & (v >= 185)).astype(np.uint8)
+    vec = cv2.dilate(teal, np.ones((5, 5), np.uint8))
+    letras = blanco & vec
+    col_teal = teal.sum(axis=0)
+    col_letras = letras.sum(axis=0)
+    umbral_t = max(int(0.06 * alto), 15)
+    cols = np.flatnonzero((col_teal >= umbral_t) & (col_letras >= 2))
+    if len(cols) < int(0.06 * ancho):
+        return []
+    x_min, x_max = int(np.percentile(cols, 5)), int(np.percentile(cols, 95))
+    span = x_max - x_min
+    if not (0.08 * ancho <= span <= 0.30 * ancho):
+        return []
+    en_arco = (cols >= x_min) & (cols <= x_max)
+    if en_arco.sum() < int(0.05 * ancho):
+        return []
+    cx = 0.5 * (x_min + x_max) * W / ancho
+    return [round(float(cx), 1)]
+
+
+def postes_meta(f, pista=PISTA):
+    """x (en coordenadas de ancho W) de los postes a franjas rojas y blancas del cuadro: columnas
+    angostas donde se alternan rojo y blanco al menos 4 veces, con franjas parejas (las de las puntas
+    pueden ser largas: el poste suele terminar en un tramo blanco)."""
+    if pista == "valencia":
+        return detectar_arco_valencia(f)
     alto, ancho = f.shape[:2]
     hsv = cv2.cvtColor(f, cv2.COLOR_BGR2HSV)
     h, s, v = hsv[..., 0], hsv[..., 1], hsv[..., 2]
@@ -298,6 +341,8 @@ def postes_meta(f):
     lab = np.zeros((alto, ancho), np.int8)
     lab[((h <= 8) | (h >= 168)) & (s >= 100) & (v >= 60)] = 1          # rojo
     lab[(s <= 55) & (v >= claro)] = 2                                   # blanco
+    for gx1, gy1, gx2, gy2 in PISTAS[pista]["graficas"]:
+        lab[int(gy1 * alto / H):int(gy2 * alto / H), int(gx1 * ancho / W):int(gx2 * ancho / W)] = 0
     lab = lab[int(0.12 * alto):int(0.80 * alto)]
     min_f, max_f = max(int(6 * alto / H), 2), int(60 * alto / H)        # largo de una franja
     candidatas = np.flatnonzero(((lab == 1).sum(0) >= min_f * 2) & ((lab == 2).sum(0) >= min_f * 2))
@@ -333,7 +378,7 @@ def inclinacion_riel(f):
     alto, ancho = f.shape[:2]
     hsv = cv2.cvtColor(f, cv2.COLOR_BGR2HSV)
     blanco = ((hsv[..., 1] < 45) & (hsv[..., 2] > 190)).astype(np.uint8) * 255
-    blanco[:int(0.17 * alto)] = 0                                       # gráfica de tiempos
+    blanco[:int(0.20 * alto)] = 0                                       # gráfica de tiempos
     lineas = cv2.HoughLinesP(blanco, 1, np.pi / 360, 80, minLineLength=ancho // 4, maxLineGap=12)
     if lineas is None:
         return None
@@ -343,8 +388,8 @@ def inclinacion_riel(f):
     return round(float(np.median(angulos[largos > 0.6 * largos.max()])), 1)
 
 
-def analizar_recta(video, desde, hasta):
-    """Muestras [t, inclinación de la baranda, [x de los postes]] entre desde y hasta."""
+def analizar_recta(video, desde, hasta, pista=PISTA):
+    """Muestras [t, inclinación de la baranda, [x de los postes/arco]] entre desde y hasta."""
     wa, ha = int(round(W * RECTA_ESCALA)), int(round(H * RECTA_ESCALA))
     proceso = subprocess.Popen(
         ["ffmpeg", "-v", "error", "-ss", "%.3f" % desde, "-t", "%.3f" % (hasta - desde), "-i", video,
@@ -362,7 +407,7 @@ def analizar_recta(video, desde, hasta):
             if len(b) < tam:
                 break
             f = np.frombuffer(b, np.uint8).reshape(ha, wa, 3)
-            muestras.append([round(desde + len(muestras) / RECTA_FPS, 2), inclinacion_riel(f), postes_meta(f)])
+            muestras.append([round(desde + len(muestras) / RECTA_FPS, 2), inclinacion_riel(f), postes_meta(f, pista)])
     finally:
         proceso.stdout.close()
         proceso.kill()
@@ -370,21 +415,22 @@ def analizar_recta(video, desde, hasta):
     return muestras
 
 
-def cargar_o_analizar_recta(video, d, desde):
+def cargar_o_analizar_recta(video, d, desde, pista=PISTA):
     """La pasada de la recta se guarda junto al análisis del video (en el mismo cache)."""
     r = d.get("recta")
-    if r and r.get("version") == VERSION_RECTA and r.get("desde", 1e9) <= desde + 0.5:
+    if (r and r.get("version") == VERSION_RECTA and r.get("pista", PISTA) == pista
+            and r.get("ancho", 1920) == W and r.get("desde", 1e9) <= desde + 0.5):
         return r["muestras"]
     print("  buscando la recta final y la meta...", flush=True)
-    d["recta"] = {"version": VERSION_RECTA, "desde": round(desde, 2),
-                  "muestras": analizar_recta(video, desde, d["duracion"])}
+    d["recta"] = {"version": VERSION_RECTA, "pista": pista, "ancho": W, "desde": round(desde, 2),
+                  "muestras": analizar_recta(video, desde, d["duracion"], pista)}
     with open(os.path.splitext(video)[0] + ".foco-cache.json", "w", encoding="utf-8") as fh:
         json.dump(d, fh)
     return d["recta"]["muestras"]
 
 
-def detectar_meta(muestras, desde=0.0):
-    """La toma de la meta: el primer poste a franjas que se queda quieto en cuadro después de `desde`.
+def detectar_meta(muestras, desde=0.0, cortes=()):
+    """La toma de la meta: el primer poste/arco que se queda quieto en cuadro después de `desde`.
 
     Devuelve {"x": donde quedó el poste, "pista": [[t, x], ...] del poste mientras está la meta en
     cuadro (incluido cuando entra mientras la cámara todavía panea), "sentido": +1/-1 si se vio entrar
@@ -413,7 +459,7 @@ def detectar_meta(muestras, desde=0.0):
         # en la meta la cámara mira la recta de costado: baranda horizontal. Los postes de
         # distancia (también a franjas) se ven en la curva, con la baranda inclinada.
         angulos = [riel[p[i][0]] for i in cerca if riel.get(p[i][0]) is not None]
-        if not angulos or abs(np.median(angulos)) > 4:
+        if not angulos or abs(np.median(angulos)) > 8:
             continue
         # la meta dura mientras el poste no se aleja de donde quedó (después la cámara se va con
         # el ganador); antes, el poste entrando en cuadro también cuenta
@@ -421,15 +467,16 @@ def detectar_meta(muestras, desde=0.0):
         entra = pista[0][1] - quieto
         meta = {"x": round(quieto, 1), "pista": pista,
                 "sentido": int(np.sign(entra)) if abs(entra) > 0.25 * VENTANA else 0}
-        meta["inicio_toma"] = inicio_toma_recta(muestras, pista[0][0])
+        meta["inicio_toma"] = inicio_toma_recta(muestras, pista[0][0], cortes)
         return meta
     return None
 
 
-def inicio_toma_recta(muestras, t_meta):
-    """Hacia atrás desde la meta, mientras siga la misma toma: la baranda inclinada menos de RIEL_MAX
-    y sin saltos de inclinación (un salto es un cambio de cámara)."""
-    previas = [(t, a) for t, a, _ in muestras if t <= t_meta]
+def inicio_toma_recta(muestras, t_meta, cortes=()):
+    """Hacia atrás desde la meta, mientras siga la misma toma: la baranda inclinada menos de RIEL_MAX,
+    sin saltos bruscos de inclinación y sin cruzar un corte de cámara."""
+    tope = max((c for c in cortes if c < t_meta - 1.0), default=0.0)
+    previas = [(t, a) for t, a, _ in muestras if tope <= t <= t_meta]
     inicio, ultimo, perdidas = t_meta, None, 0
     for t, a in reversed(previas):
         if t_meta - t > RECTA_MAX:
@@ -440,16 +487,17 @@ def inicio_toma_recta(muestras, t_meta):
                 break
             continue
         inicio, ultimo, perdidas = t, a, 0
-    return inicio
+    return round(tope, 2) if tope and abs(inicio - tope) < 1.5 else inicio
 
 
 def x_poste(meta, t):
-    """x del poste en el instante t (interpolado en la pista), o None fuera de la meta."""
+    """x del poste/arco en el instante t: fijo en meta['x'] mientras la cámara ya está en la meta."""
     p = meta["pista"]
     if t < p[0][0] or t > p[-1][0]:
         return None
     ts = [q[0] for q in p]
-    return float(np.interp(t, ts, [q[1] for q in p]))
+    xp = float(np.interp(t, ts, [q[1] for q in p]))
+    return meta["x"] if abs(xp - meta["x"]) <= POSTE_QUIETO else xp
 
 
 # ----------------------------------------------------------------------------
@@ -525,14 +573,26 @@ def separar(cajas, dividida, pista=PISTA):
         if any(a <= cx <= c and b <= cy <= e for a, b, c, e in graficas):
             continue
         (caballos if k == CABALLO else jinetes).append((x1, y1, x2, y2))
+    if caballos:
+        enteros = [c for c in caballos if not ((c[0] <= 10 or c[2] >= W - 10) and (c[2] - c[0]) < 220)]
+        if enteros:
+            caballos = enteros
+    if len(caballos) >= 4:
+        altos = np.median([c[3] - c[1] for c in caballos])
+        caballos = [c for c in caballos if (c[3] - c[1]) >= 0.55 * altos]
     return caballos, jinetes
 
 
 def orientacion(caballos, jinetes):
-    """Mediana de cuánto está corrido el jinete hacia un lado de su caballo (+ derecha, - izquierda)."""
+    """Mediana de cuánto está corrido el jinete hacia un lado de su caballo (+ derecha, - izquierda).
+    Se ignoran caballos cortados por el borde del cuadro y jinetes en la superposición de dos caballos."""
     corr = []
-    for x1, y1, x2, y2 in caballos:
-        suyos = [j for j in jinetes if x1 < (j[0] + j[2]) / 2 < x2 and j[3] < y1 + 0.8 * (y2 - y1)]
+    enteros = [c for c in caballos if c[0] > 15 and c[2] < W - 15]
+    for x1, y1, x2, y2 in enteros:
+        suyos = [j for j in jinetes
+                 if x1 < (j[0] + j[2]) / 2 < x2
+                 and j[3] < y1 + 0.8 * (y2 - y1)
+                 and sum(1 for c in caballos if c[0] < (j[0] + j[2]) / 2 < c[2]) == 1]
         if suyos:
             j = max(suyos, key=lambda j: (j[2] - j[0]) * (j[3] - j[1]))
             corr.append(((j[0] + j[2]) / 2 - (x1 + x2) / 2) / (x2 - x1))
@@ -569,7 +629,9 @@ def tramo_carrera(d, pista=PISTA, desde=1.0):
         previo = pasos[i - 1] if i else None
         vuelve = pasos[j] if j < len(pasos) else None
         if (previo and previo[1] and vuelve
-                and pasos[j - 1][0] - previo[0] >= 2.0          # el hueco dura 2 s o más
+                and previo[0] >= d["duracion"] * 0.55
+                and not dividida(previo[0])
+                and vuelve[0] - previo[0] >= 1.5                # el hueco en la meta dura ~1.5 s o más
                 and vuelve[0] - pasos[j - 1][0] <= 15.0):       # y después vuelven a verse
             fin = previo[0]
         i = j
@@ -579,12 +641,14 @@ def tramo_carrera(d, pista=PISTA, desde=1.0):
     return inicio, fin
 
 
-def parciales_por_distancia(d, distancias, pista=PISTA):
+def parciales_por_distancia(d, distancias, pista=PISTA, fin_forzado=None):
     """Tiempos estimados de cada parcial, repartiendo la distancia de la carrera entre la partida y
     la meta. Es lo que se usa donde el canal no muestra los tiempos (Valencia)."""
     if not distancias:
         return []
     inicio, fin = tramo_carrera(d, pista)
+    if fin_forzado is not None:
+        fin = fin_forzado
     if inicio is None or fin is None or fin <= inicio:
         return []
     total = float(max(distancias))
@@ -595,23 +659,26 @@ def parciales_por_distancia(d, distancias, pista=PISTA):
 # Reglas de encuadre
 # ----------------------------------------------------------------------------
 
-def encuadre(caballos, sentido, fase, frontal):
+def encuadre(caballos, sentido, fase, frontal, zoom=1.0):
     """x del centro de la ventana para un instante, o None si no hay caballos."""
     if not caballos:
         return None, "sin caballos"
+    centro_grupo = float(np.median([(c[0] + c[2]) / 2 for c in caballos]))
     if fase == "despues":
         area = lambda c: (c[2] - c[0]) * (c[3] - c[1])
         grandes = sorted(caballos, key=area, reverse=True)
-        if len(grandes) == 1 or area(grandes[0]) > 2 * area(grandes[1]):   # el ganador en primer plano
+        if len(grandes) == 1 or area(grandes[0]) > 1.5 * area(grandes[1]):   # el ganador en primer plano
             return (grandes[0][0] + grandes[0][2]) / 2, "ganador"
-        fase = "final"                                                   # todavía se ven varios
-    centro_grupo = float(np.median([(c[0] + c[2]) / 2 for c in caballos]))
+        return centro_grupo, "pelotón"
     if sentido == 0:
         return centro_grupo, "pelotón"
     cabeza = lambda c: c[2] if sentido > 0 else c[0]
     cola = lambda c: c[0] if sentido > 0 else c[2]
     orden = sorted(caballos, key=lambda c: sentido * cabeza(c), reverse=True)
     lider = orden[0]
+    if zoom > 1.01:
+        mitad_z, margen_z = MITAD / zoom, MARGEN / zoom
+        return cabeza(lider) - sentido * (mitad_z - margen_z), "puntero lejos"
     centro_lider = (lider[0] + lider[2]) / 2
     if lider[2] - lider[0] > 0.9 * VENTANA:            # no entra con aire delante: centrarlo
         return centro_lider, "primer plano"
@@ -684,20 +751,24 @@ def rezagado(caballos, sentido):
 
 def calcular(d, parciales, partida=0.0, flash=False, recta=None, pista=PISTA):
     """recta: muestras de analizar_recta(); con ellas (perfil flash) la recta final empieza donde
-    empieza la toma que termina en la meta, y en la meta el foco queda fijo en el poste de llegada."""
+    empieza la toma que termina en la meta, y en la meta el foco queda fijo en el poste/arco de llegada."""
+    global W
+    W = d.get("ancho", W)
     dur = d["duracion"]
     td, bd = pantalla_dividida(d["muestras"])
     dividida = lambda t: bool(bd[min(np.searchsorted(td, t), len(bd) - 1)])
+    cand_cortes = candidatos_corte(d)
     inicio_final = parciales[-2] if len(parciales) >= 2 else dur * 0.7
     meta = parciales[-1] - 1.5 if parciales else dur * 0.75
     notas = []
-    linea = detectar_meta(recta, inicio_final) if recta else None
+    linea = detectar_meta(recta, min(inicio_final, dur * 0.65), cand_cortes) if recta else None
     if linea:
         llega = linea["pista"][0][0]
-        inicio_final = (linea["inicio_toma"] if llega - linea["inicio_toma"] >= RECTA_MIN
+        en_corte = any(abs(linea["inicio_toma"] - c) < 0.5 for c in cand_cortes)
+        inicio_final = (linea["inicio_toma"] if (en_corte or llega - linea["inicio_toma"] >= RECTA_MIN)
                         else min(linea["inicio_toma"], inicio_final))
         meta = linea["pista"][-1][0]             # después de la toma de la meta: el ganador
-        notas.append("Recta final desde %.1f s; meta (poste de llegada) en cuadro de %.1f a %.1f s."
+        notas.append("Recta final desde %.1f s; meta (arco/poste de llegada) en cuadro de %.1f a %.1f s."
                      % (inicio_final, llega, meta))
     elif recta:
         notas.append("No se encontró el poste de llegada: la recta final empieza en el penúltimo parcial.")
@@ -705,21 +776,34 @@ def calcular(d, parciales, partida=0.0, flash=False, recta=None, pista=PISTA):
     # 1) qué hay en cada instante
     instantes = []
     for x in d["detecciones"]:
-        cab, jin = separar(x["cajas"], dividida(x["t"]), pista)
+        div = dividida(x["t"])
+        cab, jin = separar(x["cajas"], div, pista)
         alto = float(np.median([(c[3] - c[1]) / max(c[2] - c[0], 1) for c in cab])) if cab else None
-        instantes.append({"t": x["t"], "caballos": cab, "orient": orientacion(cab, jin), "alto": alto})
+        alto_px = float(np.median([c[3] - c[1] for c in cab])) if cab else None
+        cy_med = float(np.median([(c[1] + c[3]) / 2 for c in cab])) if cab else None
+        ancho_grupo = (max(c[2] for c in cab) - min(c[0] for c in cab)) if len(cab) >= 2 else 0.0
+        lejos = (not div) and len(cab) >= 3 and alto_px is not None and alto_px < 108 and cy_med is not None and cy_med > 620
+        instantes.append({"t": x["t"], "caballos": cab, "orient": orientacion(cab, jin),
+                          "alto": alto, "alto_px": alto_px, "ancho_grupo": ancho_grupo, "lejos": lejos})
 
-    # 2) sentido de carrera y cámara de frente, mirando ±1.5 s alrededor
+    lejos_arr = mediana_movil([1.0 if x["lejos"] else 0.0 for x in instantes], 7) > 0.5 if instantes else []
+    for x, lj in zip(instantes, lejos_arr):
+        x["zoom"] = ZOOM_LEJOS if (flash and lj and x["t"] < inicio_final) else 1.0
+
+    # 2) sentido de carrera y cámara de frente, mirando ±2.0 s alrededor
     ts = np.array([x["t"] for x in instantes])
     sentido_previo = 0
     for x in instantes:
-        cerca = [y for y in instantes if abs(y["t"] - x["t"]) <= 1.5]
+        cerca = [y for y in instantes if abs(y["t"] - x["t"]) <= 2.0]
         o = [y["orient"] for y in cerca if y["orient"] is not None]
         if o and abs(np.median(o)) >= 0.03:
             sentido_previo = 1 if np.median(o) > 0 else -1
         x["sentido"] = sentido_previo
         a = [y["alto"] for y in cerca if y["alto"] is not None and abs(y["t"] - x["t"]) <= 1.0]
-        x["frontal"] = bool(a) and float(np.median(a)) > FRONTAL
+        altos_px = [y["alto_px"] for y in cerca if y["alto_px"] is not None and abs(y["t"] - x["t"]) <= 1.0]
+        anchos_g = [y["ancho_grupo"] for y in cerca if abs(y["t"] - x["t"]) <= 1.0]
+        es_panoramica = (bool(altos_px) and np.median(altos_px) < 120) or (bool(anchos_g) and np.median(anchos_g) > 0.75 * VENTANA)
+        x["frontal"] = bool(a) and float(np.median(a)) > FRONTAL and not es_panoramica
     if linea:
         # en la recta todos corren hacia la meta: un solo sentido para toda la toma. Lo da el poste
         # (entra por el lado hacia el que corren); si no se lo vio entrar, los jinetes de toda la recta
@@ -740,14 +824,15 @@ def calcular(d, parciales, partida=0.0, flash=False, recta=None, pista=PISTA):
         fase = "despues" if t > meta else ("final" if t >= inicio_final else
                                            ("previa" if t < partida - 1 else
                                             ("partida" if t < partida + PARTIDA else "carrera")))
-        if linea and fase == "final":
+        if linea and (fase == "final" or (fijo and not x["caballos"])):
             cx, motivo = encuadre_recta(x["caballos"], x["sentido"], x["frontal"])
-            xp = x_poste(linea, t)
+            xp = x_poste(linea, t) if t <= meta else (linea["x"] if fijo else None)
             if xp is not None and (fijo or en_la_meta(x["caballos"], x["sentido"], xp)):
                 cx, motivo, fase, fijo = xp, "meta", "meta", True
         else:
-            cx, motivo = encuadre(x["caballos"], x["sentido"], fase, x["frontal"] or fase == "previa")
-        serie.append([t, cx, motivo, fase])
+            fijo = False
+            cx, motivo = encuadre(x["caballos"], x["sentido"], fase, x["frontal"] or fase == "previa", x["zoom"])
+        serie.append([t, cx, motivo, fase, x["zoom"]])
     seguidas = 0
     for p, x in zip(serie, instantes):          # partida: alguien quedó muy atrás 3 muestras seguidas
         if p[3] != "partida":
@@ -767,7 +852,7 @@ def calcular(d, parciales, partida=0.0, flash=False, recta=None, pista=PISTA):
     # 4) cortes: cambio de imagen + cambio grande del encuadre ideal
     xs = np.array([p[1] for p in serie])
     cortes = []
-    for c in candidatos_corte(d):
+    for c in cand_cortes:
         antes = xs[(ts >= c - 1.2) & (ts < c - 0.1)]
         despues = xs[(ts > c + 0.1) & (ts <= c + 1.2)]
         if len(antes) and len(despues) and abs(np.median(despues) - np.median(antes)) > SALTO:
@@ -795,8 +880,9 @@ def calcular(d, parciales, partida=0.0, flash=False, recta=None, pista=PISTA):
 # Suavizado y keyframes
 # ----------------------------------------------------------------------------
 
-def limitar(x):
-    return float(min(max(x, MITAD), W - MITAD))
+def limitar(x, zoom=1.0):
+    mitad = MITAD / zoom
+    return float(min(max(x, mitad), W - mitad))
 
 
 def rdp(puntos, tol):
@@ -815,17 +901,21 @@ def rdp(puntos, tol):
 
 
 def suavizar(tramo, a, flash=False):
-    """Keyframes [t, x, motivo] de una toma: sin temblores y con velocidad de paneo limitada."""
+    """Keyframes [t, x, motivo, zoom] de una toma: sin temblores y con velocidad de paneo limitada."""
     ts = [p[0] for p in tramo]
     xs = [p[1] for p in tramo]
     visita = [p[2] == "partió mal" for p in tramo]
     fijo = [p[2] == "meta" for p in tramo]
-    # la mediana se aplica por separado antes de la meta, en la meta y después: si no, el poste
-    # tira del encuadre del puntero (y al revés) segundos antes de tiempo
+    fases = [p[3] for p in tramo]
+    zooms = [p[4] if len(p) > 4 else 1.0 for p in tramo]
+    tipo_tramo = [("meta" if fijo[i] else ("recta" if fases[i] == "final" else ("lejos" if zooms[i] > 1.01 else "normal")))
+                  for i in range(len(tramo))]
+    # la mediana se aplica por separado antes de la meta, en la recta, en la meta y después
     m = []
-    for grupo in tramos_iguales(fijo):
-        m += list(mediana_movil([xs[i] for i in grupo], 5 if fijo[grupo[0]] else
-                                (MEDIANA_FLASH if flash else 9)))
+    for grupo in tramos_iguales(tipo_tramo):
+        tp = tipo_tramo[grupo[0]]
+        k_med = 5 if tp in ("meta", "recta") else (7 if tp == "lejos" else (MEDIANA_FLASH if flash else 9))
+        m += list(mediana_movil([xs[i] for i in grupo], k_med))
     m = [xs[i] if visita[i] else m[i] for i in range(len(m))]
     for orden in (range(1, len(m)), range(len(m) - 2, -1, -1)):   # hacia adelante y hacia atrás
         for i in orden:
@@ -834,26 +924,35 @@ def suavizar(tramo, a, flash=False):
             rapido = 3 if visita[i] or visita[j] else (2 if entra else 1)
             lim = VEL_MAX * rapido * abs(ts[i] - ts[j])
             m[i] = m[j] + max(-lim, min(lim, m[i] - m[j]))
-    puntos = [(round(t, 3), round(limitar(x), 1)) for t, x in zip(ts, m)]
+    puntos = [(round(t, 3), round(limitar(x, z), 1)) for t, x, z in zip(ts, m, zooms)]
     puntos[0] = (round(a, 3), puntos[0][1])
     motivo = {round(p[0], 3): p[2] for p in tramo}
+    zoom_map = {round(p[0], 3): (p[4] if len(p) > 4 else 1.0) for p in tramo}
+    zoom_map[round(a, 3)] = zooms[0]
     if not flash:
-        return [[t, x, motivo.get(t, "")] for t, x in rdp(puntos, TOLERANCIA)]
-    # flash: pocos movimientos de cámara, largos y parejos. Primero se saca lo que sobra sin que
-    # se note (TOL_FLASH) y después se sigue sacando hasta dejar uno cada SEG_MIN_FLASH segundos,
-    # siempre que el encuadre no se aleje más de TOL_MAX_FLASH del ideal. La llegada a la meta y
-    # la salida quedan siempre como keyframes: el foco fijo empieza y termina justo ahí.
+        return [[t, x, motivo.get(t, ""), round(zoom_map.get(t, 1.0), 4)] for t, x in rdp(puntos, TOLERANCIA)]
+    # flash: pocos movimientos de cámara, largos y parejos. En la recta final se sigue de cerca al
+    # puntero y pelotón; en la meta el foco queda fijo en el arco/poste de llegada.
     kf = []
-    for grupo in tramos_iguales(fijo):
+    for grupo in tramos_iguales(tipo_tramo):
+        tp = tipo_tramo[grupo[0]]
         fin = grupo[-1] + 1                                      # el primero del tramo siguiente
-        if fijo[grupo[0]]:                                       # en la meta: quieto en el poste
+        if tp == "meta":                                         # en la meta: quieto en el poste
             pedazo = decimar(puntos[grupo[0]:fin], TOL_META, 2) + puntos[fin:fin + 1]
+        elif tp == "recta":
+            pedazo = puntos[grupo[0]:fin + 1]
+            objetivo = max(2, int(round((pedazo[-1][0] - pedazo[0][0]) / 2.2)) + 1)
+            pedazo = decimar(decimar(pedazo, 30.0, len(pedazo)), 60.0, objetivo)
+        elif tp == "lejos":
+            pedazo = puntos[grupo[0]:fin + 1]
+            objetivo = max(2, int(round((pedazo[-1][0] - pedazo[0][0]) / 4.5)) + 1)
+            pedazo = decimar(decimar(pedazo, 45.0, len(pedazo)), 85.0, objetivo)
         else:
             pedazo = puntos[grupo[0]:fin + 1]
             objetivo = max(2, int(round((pedazo[-1][0] - pedazo[0][0]) / SEG_MIN_FLASH)) + 1)
             pedazo = decimar(decimar(pedazo, TOL_FLASH, len(pedazo)), TOL_MAX_FLASH, objetivo)
         kf += pedazo if not kf else pedazo[1:] if kf[-1] == pedazo[0] else pedazo
-    return [[t, x, motivo.get(t, "")] for t, x in kf]
+    return [[t, x, motivo.get(t, ""), round(zoom_map.get(t, 1.0), 4)] for t, x in kf]
 
 
 def tramos_iguales(v):
@@ -912,7 +1011,7 @@ def vista_previa(video, keyframes, salida):
         ok, f = cap.read()
         if not ok:
             break
-        if f.shape[1] != W:
+        if f.shape[1] != W or f.shape[0] != H:
             f = cv2.resize(f, (W, H))
         izq = int(round(x_en(keyframes, i / fps) - ancho / 2))
         izq = min(max(izq, 0), W - ancho)
@@ -946,25 +1045,33 @@ def main():
 
     d = cargar_o_analizar(a.video, perfil, a.pista)
     partida, estimados = a.partida, False
+    inicio_carr, fin_carr = tramo_carrera(d, a.pista)
     if not parciales and distancias:
         parciales = parciales_por_distancia(d, distancias, a.pista)
         if parciales:
             estimados = True
-            inicio, fin = tramo_carrera(d, a.pista)
-            partida = max(partida, inicio or 0.0)
-            print("  el canal no muestra los tiempos en pantalla; parciales estimados por distancia")
-            print("  (carrera de %.1f a %.1f s): %s"
-                  % (inicio, fin, ", ".join("%.1f s" % t for t in parciales)))
+            partida = max(partida, inicio_carr or 0.0)
     recta = None
     if a.flash:
-        penultimo = parciales[-2] if len(parciales) >= 2 else d["duracion"] * 0.7
-        recta = cargar_o_analizar_recta(a.video, d, max(penultimo - RECTA_ANTES, partida, 0.0))
+        penultimo = min(parciales[-2], d["duracion"] * 0.75) if len(parciales) >= 2 else d["duracion"] * 0.7
+        recta = cargar_o_analizar_recta(a.video, d, max(penultimo - RECTA_ANTES, partida, 0.0), a.pista)
+        if estimados and recta:
+            linea_m = detectar_meta(recta, d["duracion"] * 0.60, candidatos_corte(d))
+            if linea_m and (fin_carr is None or fin_carr > linea_m["pista"][-1][0] + 1.0 or fin_carr < linea_m["pista"][0][0]):
+                fin_carr = round(min(linea_m["pista"][0][0] + 2.0, linea_m["pista"][-1][0]), 2)
+                parciales = parciales_por_distancia(d, distancias, a.pista, fin_forzado=fin_carr)
+    if estimados and parciales:
+        print("  el canal no muestra los tiempos en pantalla; parciales estimados por distancia")
+        print("  (carrera de %.1f a %.1f s): %s"
+              % (inicio_carr, fin_carr, ", ".join("%.1f s" % t for t in parciales)))
     r = calcular(d, parciales, partida, a.flash, recta, a.pista)
+    r["ancho"] = W
     r["ventana"] = VENTANA
     r["escala"] = ESCALA
+    r["flash"] = bool(a.flash)
     r["dividida"] = intervalos_dividida(d["muestras"])
     r["parciales"] = parciales
-    r["carrera"] = list(tramo_carrera(d, a.pista))
+    r["carrera"] = [inicio_carr, fin_carr]
     r["parciales_estimados"] = estimados
     with open(a.salida, "w", encoding="utf-8") as fh:
         json.dump(r, fh, ensure_ascii=False, indent=1)
