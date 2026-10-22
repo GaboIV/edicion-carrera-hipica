@@ -749,9 +749,11 @@ def rezagado(caballos, sentido):
     return (ultimo[0] + ultimo[2]) / 2 if hueco > 1.8 * ancho else None
 
 
-def calcular(d, parciales, partida=0.0, flash=False, recta=None, pista=PISTA):
+def calcular(d, parciales, partida=0.0, flash=False, recta=None, pista=PISTA, sin_recta=False):
     """recta: muestras de analizar_recta(); con ellas (perfil flash) la recta final empieza donde
-    empieza la toma que termina en la meta, y en la meta el foco queda fijo en el poste/arco de llegada."""
+    empieza la toma que termina en la meta, y en la meta el foco queda fijo en el poste/arco de llegada.
+    sin_recta: en la recta final no se mueve el foco (queda fijo, lo ajusta el editor a mano);
+    después de la meta vuelve el foco automático."""
     global W
     W = d.get("ancho", W)
     dur = d["duracion"]
@@ -871,7 +873,28 @@ def calcular(d, parciales, partida=0.0, flash=False, recta=None, pista=PISTA):
             kf[0][2] = "corte"
         keyframes += kf
     en_meta = [p[0] for p in serie if p[2] == "meta"]
+
+    # 6) sin recta final: entre el comienzo de la recta y la meta el foco queda fijo, para que el
+    # editor lo arme a mano. Después de la meta vuelve el foco automático (con un corte, como la
+    # transmisión, que cambia de cámara al cruzar).
+    sin_foco = None
+    if sin_recta and meta - inicio_final >= 1.0:
+        antes = [k for k in keyframes if k[0] < inicio_final - 0.05]
+        despues = [k for k in keyframes if k[0] > meta + 0.05]
+        x_fijo = antes[-1][1] if antes else (despues[0][1] if despues else W / 2.0)
+        keyframes = (antes
+                     + [[round(inicio_final, 3), round(x_fijo, 1), "sin foco (recta final)"],
+                        [round(meta, 3), round(x_fijo, 1), "sin foco (recta final)"]]
+                     + despues)
+        if despues:
+            keyframes[len(antes) + 2][2] = "corte"
+        sin_foco = [round(inicio_final, 2), round(meta, 2)]
+        notas.append("Recta final de %.1f a %.1f s: sin foco automático (queda fijo en x=%.0f para "
+                     "que lo ajustes a mano); después de la meta sigue solo."
+                     % (inicio_final, meta, x_fijo))
+
     return {"keyframes": keyframes, "cortes": [round(c, 2) for c in cortes], "notas": notas,
+            "sin_foco": sin_foco,
             "recta": {"inicio": round(inicio_final, 2), "poste": linea["x"] if linea else None,
                       "foco_fijo": [round(en_meta[0], 2), round(en_meta[-1], 2)] if en_meta else None},
             "serie": [[round(p[0], 2), round(p[1], 1), p[2]] for p in serie]}
@@ -1036,6 +1059,9 @@ def main():
     ap.add_argument("--distancias", default="",
                     help="distancias de los banners (400,800,1200,1300): si el canal no muestra los "
                          "tiempos, los parciales se estiman repartiendo la distancia de la carrera")
+    ap.add_argument("--sin-recta-final", action="store_true",
+                    help="en la recta final el foco no se mueve (queda fijo para ajustarlo a mano); "
+                         "después de la meta sigue automático")
     a = ap.parse_args()
     parciales = [float(x) for x in a.parciales.split(",") if x.strip()]
     distancias = [int(x) for x in a.distancias.split(",") if x.strip()]
@@ -1062,7 +1088,7 @@ def main():
         print("  el canal no muestra los tiempos en pantalla; parciales estimados por distancia")
         print("  (carrera de %.1f a %.1f s): %s"
               % (inicio_carr, fin_carr, ", ".join("%.1f s" % t for t in parciales)))
-    r = calcular(d, parciales, partida, a.flash, recta, a.pista)
+    r = calcular(d, parciales, partida, a.flash, recta, a.pista, a.sin_recta_final)
     r["ancho"] = W
     r["ventana"] = VENTANA
     r["escala"] = ESCALA

@@ -8,8 +8,31 @@ Todos crean un proyecto **nuevo**: la plantilla nunca se modifica.
 | `Crear proyecto 2026.bat` | Banners, cintillo y video, con el foco que trae la plantilla. |
 | `Crear proyecto 2026 - foco automatico.bat` | Igual, pero calcula el foco siguiendo a los caballos (paneo cuadro a cuadro) y crea `... - vista previa del foco.mp4` para revisarlo. |
 | `Crear proyecto 2026 - foco flash.bat` | Versión express: calcula el foco mucho más rápido y deja **pocos movimientos de cámara** (paneos largos en vez de micro-zooms). No crea la vista previa. |
+| `Crear proyecto 2026 - foco flash - sin recta final.bat` | Igual, pero **la recta final queda con el foco fijo** para armarla a mano (ver abajo). |
 | `Crear proyecto 2026 - foco flash - Valencia.bat` | Igual, para las carreras de Valencia (ver abajo). |
+| `Crear proyecto 2026 - foco flash - Valencia sin recta final.bat` | Valencia, con la recta final a mano. |
 | `Crear proyecto 2026 - foco desde cero.bat` | Borra los movimientos de foco de la plantilla para empezar de cero. |
+
+## Varias carreras de una vez
+
+Cualquiera de estos bats acepta **una carpeta con varias carreras adentro**: entra en cada
+subcarpeta (cada una con su video y sus banners), hace el proyecto de cada carrera y al final
+muestra el resumen. También se puede llamar desde la terminal:
+
+```
+python camtasia_carrera.py --plantilla plantillas\plantilla-2026.tscproj ^
+       --foco-auto --flash --sin-recta-final "D:\...\Carreras\La Rinconada\Reunion 40"
+```
+
+```
+Carpeta con 8 carrera(s): D:\...\Reunion 40
+ Carrera 1/8: 461-2026
+ ...
+ Resumen: 8 proyecto(s) hecho(s), 0 con problema(s)
+   ok   461-2026                           461 - 2026.tscproj
+```
+
+Si una carrera falla (le falta el video, etc.), sigue con las demás y la marca en el resumen.
 
 Cada hipódromo usa su plantilla y su `--pista` (`rinconada` o `valencia`): la pista define dónde
 está la franja que divide la pantalla y qué zonas del cuadro tienen gráficas del canal.
@@ -93,6 +116,23 @@ El foco flash reconoce solo, en cada video, la recta final y la meta:
 Esta búsqueda es una pasada extra, liviana, sobre el final del video (unos segundos); se guarda en el
 mismo `*.foco-cache.json`. Al terminar, el bat muestra desde qué segundo detectó la recta y cuándo
 estuvo la meta en cuadro; si dice que no encontró el poste, esa carrera usa el criterio anterior.
+
+### Recta final a mano (`--sin-recta-final`)
+
+Los bats `... sin recta final` usan ese modo: **en la recta final el foco no se mueve solo**.
+Queda fijo en el encuadre donde arranca la recta, para que la armes a mano en Camtasia (ahí todavía
+no hay una regla que sirva siempre: a veces conviene seguir al puntero y a veces al grupo). Después
+de cruzar la meta vuelve el foco automático, con el ganador y un corte como el de la transmisión.
+
+El bat dice hasta dónde llega lo automático y desde dónde queda a tu gusto:
+
+```
+Recta final desde 64.7 s; meta (arco/poste de llegada) en cuadro de 89.2 a 97.6 s.
+Recta final de 64.7 a 97.6 s: sin foco automático (queda fijo en x=1020 para que lo ajustes a mano);
+después de la meta sigue solo.
+```
+
+En el proyecto, ese tramo no tiene keyframes de cámara: agregás los tuyos en Camtasia y listo.
 
 ## Archivos que se guardan al lado del video
 

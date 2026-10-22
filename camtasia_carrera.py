@@ -743,7 +743,8 @@ def plan_banners(nuevos, fin_video, inicios_plantilla, k, estimados=None, pista=
 PYTHON_VISION = os.path.join(AQUI, ".python-vision", "cpython-3.12.15-windows-x86_64-none", "python.exe")
 
 
-def calcular_foco(nuevos, carpeta_salida, nombre, vista_previa, flash=False, pista=PISTA):
+def calcular_foco(nuevos, carpeta_salida, nombre, vista_previa, flash=False, pista=PISTA,
+                  sin_recta_final=False):
     """Datos del foco: keyframes [segundo del video, x del centro, motivo, zoom] y
     los tramos de pantalla dividida; o None si no se pudo calcular."""
     if not os.path.exists(PYTHON_VISION):
@@ -761,6 +762,8 @@ def calcular_foco(nuevos, carpeta_salida, nombre, vista_previa, flash=False, pis
         cmd += ["--partida", "%.2f" % nuevos.partida]
     if flash:
         cmd += ["--flash"]
+    if sin_recta_final:
+        cmd += ["--sin-recta-final"]
     if vista_previa:
         cmd += ["--preview", os.path.join(carpeta_salida, nombre + " - vista previa del foco.mp4")]
     sys.stdout.flush()
@@ -1755,6 +1758,51 @@ def procesar_86(plantilla, nuevos, salida_dir, nombre):
 
 # ----------------------------------------------------------------------------
 
+def procesar_carrera(carpeta_carrera, a, plantilla):
+    """Hace el proyecto de una carrera. Devuelve (salida, tuvo_avisos)."""
+    antes = len(avisos)
+    carpeta = carpeta_con_medios(carpeta_carrera)
+    a.salida = os.path.abspath(a.salida) if a.salida else carpeta_carrera
+    print("Banners:  %s" % carpeta)
+
+    nuevos = Nuevos(carpeta, None)
+    numero, nombre = nombre_proyecto(carpeta, nuevos.banners)
+    nuevos.video = buscar_video([carpeta_carrera], [carpeta_carrera, carpeta], numero)
+    if not nuevos.video:
+        sys.exit("No encontré el video de la carrera. Arrástralo junto con la carpeta.")
+    nuevos.video, nota_formato = revisar_aspecto(nuevos.video, a.pista)
+    nombre = a.nombre or nombre
+    print("Video:    %s" % nuevos.video)
+    if nota_formato:
+        print("Formato:  %s" % nota_formato)
+    print("Proyecto: %s" % nombre)
+    print("Banners detectados: " + ", ".join(
+        "%s=%s" % (nombre_rango(r), os.path.basename(f)) for r, f in sorted(nuevos.banners.items())))
+
+    os.makedirs(a.salida, exist_ok=True)
+    foco = None
+    if plantilla.lower().endswith(".tscproj"):
+        if a.foco_auto:
+            foco = calcular_foco(nuevos, a.salida, nombre, a.vista_previa, a.flash, a.pista,
+                                 a.sin_recta_final)
+        salida = procesar_2026(plantilla, nuevos, a.salida, nombre, a.limpiar_foco, foco, a.pista)
+    elif plantilla.lower().endswith(".camproj"):
+        if a.limpiar_foco or a.foco_auto or a.flash:
+            aviso("--limpiar-foco, --foco-auto y --flash solo funcionan con Camtasia 2026; en 8.6 se conservan los focos.")
+        salida = procesar_86(plantilla, nuevos, a.salida, nombre)
+    else:
+        sys.exit("La plantilla debe ser .camproj o .tscproj")
+    nuevos.avisar_sobrantes()
+
+    print("\nListo: %s" % salida)
+    if foco and foco.get("sin_foco"):
+        print("Recta final %.1f-%.1f s: sin foco automático (lo ajustas a mano)."
+              % (foco["sin_foco"][0], foco["sin_foco"][1]))
+    if len(avisos) > antes:
+        print("Revisa %d aviso(s) marcados con [!]." % (len(avisos) - antes))
+    return salida, len(avisos) > antes
+
+
 def main():
     try:
         sys.stdout.reconfigure(encoding="utf-8")
@@ -1770,12 +1818,17 @@ def main():
                     help="solo 2026: calcula el foco (paneo) siguiendo a los caballos en el video")
     ap.add_argument("--flash", action="store_true",
                     help="con --foco-auto: versión rápida, con muchos menos movimientos de cámara")
+    ap.add_argument("--sin-recta-final", action="store_true",
+                    help="con --foco-auto: en la recta final no mueve el foco (queda fijo para "
+                         "ajustarlo a mano); después de la meta sigue automático")
     ap.add_argument("--vista-previa", action="store_true",
                     help="con --foco-auto: también crea un mp4 vertical para revisar el foco")
     ap.add_argument("--pista", default=None, choices=sorted(PISTAS),
                     help="hipódromo: define dónde está la franja de la pantalla dividida y el formato "
                          "del video (por defecto se deduce del nombre de la plantilla)")
-    ap.add_argument("rutas", nargs="+", help="carpeta de banners y, opcionalmente, el video de la carrera")
+    ap.add_argument("rutas", nargs="+",
+                    help="carpeta de la carrera, o una carpeta con varias carreras adentro "
+                         "(hace el proyecto de cada una)")
     a = ap.parse_args()
 
     plantilla = os.path.abspath(a.plantilla)
@@ -1793,41 +1846,45 @@ def main():
     carpetas = [r for r in a.rutas if os.path.isdir(r)]
     if not carpetas:
         sys.exit("Falta la carpeta de la carrera (o la de banners).")
-    carpeta = carpeta_con_medios(carpetas[0])
-    # Carreras\461-2026\  (video + subcarpeta de banners): el proyecto se crea ahí mismo
-    carpeta_carrera = carpetas[0] if carpeta != carpetas[0] else os.path.dirname(carpeta)
-    a.salida = os.path.abspath(a.salida) if a.salida else carpeta_carrera
-    print("Banners:  %s" % carpeta)
 
-    nuevos = Nuevos(carpeta, None)
-    numero, nombre = nombre_proyecto(carpeta, nuevos.banners)
-    nuevos.video = buscar_video(a.rutas, carpetas + [carpeta], numero)
-    if not nuevos.video:
-        sys.exit("No encontré el video de la carrera. Arrástralo junto con la carpeta.")
-    nuevos.video, nota_formato = revisar_aspecto(nuevos.video, a.pista)
-    nombre = a.nombre or nombre
-    print("Video:    %s" % nuevos.video)
-    if nota_formato:
-        print("Formato:  %s" % nota_formato)
-    print("Proyecto: %s" % nombre)
-    print("Banners detectados: " + ", ".join(
-        "%s=%s" % (nombre_rango(r), os.path.basename(f)) for r, f in sorted(nuevos.banners.items())))
-
-    os.makedirs(a.salida, exist_ok=True)
-    if plantilla.lower().endswith(".tscproj"):
-        foco = calcular_foco(nuevos, a.salida, nombre, a.vista_previa, a.flash, a.pista) if a.foco_auto else None
-        salida = procesar_2026(plantilla, nuevos, a.salida, nombre, a.limpiar_foco, foco, a.pista)
-    elif plantilla.lower().endswith(".camproj"):
-        if a.limpiar_foco or a.foco_auto or a.flash:
-            aviso("--limpiar-foco, --foco-auto y --flash solo funcionan con Camtasia 2026; en 8.6 se conservan los focos.")
-        salida = procesar_86(plantilla, nuevos, a.salida, nombre)
+    # ¿es una carrera o una carpeta con varias carreras adentro?
+    raiz = carpetas[0]
+    if videos_en([raiz]):
+        carreras = [raiz]
     else:
-        sys.exit("La plantilla debe ser .camproj o .tscproj")
-    nuevos.avisar_sobrantes()
+        carreras = [os.path.join(raiz, f) for f in sorted(os.listdir(raiz))
+                    if os.path.isdir(os.path.join(raiz, f))
+                    and not f.lower().endswith((".tscproj", ".camproj"))
+                    and videos_en([os.path.join(raiz, f)])]
+        if not carreras:
+            sys.exit("No encontré carreras en %s (cada carrera es una carpeta con su video)." % raiz)
+        print("Carpeta con %d carrera(s): %s" % (len(carreras), raiz))
 
-    print("\nListo: %s" % salida)
-    if avisos:
-        print("\nRevisa %d aviso(s) marcados con [!]." % len(avisos))
+    hechas, falladas = [], []
+    for i, carrera in enumerate(carreras, 1):
+        if len(carreras) > 1:
+            print("\n" + "=" * 74)
+            print(" Carrera %d/%d: %s" % (i, len(carreras), os.path.basename(carrera)))
+            print("=" * 74)
+        try:
+            salida, avisado = procesar_carrera(carrera, a, plantilla)
+            hechas.append((carrera, salida, avisado))
+        except SystemExit as e:
+            falladas.append((carrera, str(e)))
+            print("\n[!] %s: %s" % (os.path.basename(carrera), e))
+        except Exception as e:                     # una carrera rota no frena a las demás
+            falladas.append((carrera, "%s: %s" % (type(e).__name__, e)))
+            print("\n[!] %s: %s: %s" % (os.path.basename(carrera), type(e).__name__, e))
+
+    if len(carreras) > 1 or falladas:
+        print("\n" + "=" * 74)
+        print(" Resumen: %d proyecto(s) hecho(s), %d con problema(s)" % (len(hechas), len(falladas)))
+        for carrera, salida, avisado in hechas:
+            print("   ok   %-34s %s%s" % (os.path.basename(carrera), os.path.basename(salida),
+                                          "   (con avisos)" if avisado else ""))
+        for carrera, error in falladas:
+            print("   [!]  %-34s %s" % (os.path.basename(carrera), error))
+        print("=" * 74)
 
 
 if __name__ == "__main__":
