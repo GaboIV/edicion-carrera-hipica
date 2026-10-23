@@ -5,6 +5,25 @@ Todos crean un proyecto **nuevo**: la plantilla nunca se modifica.
 
 ## Nuevo: foco-sol-6.1 (Camtasia 2026)
 
+### Variante foco-sol-6.1-flash: sin análisis de audio
+
+Arrastra una carrera o una carpeta con varias carreras sobre
+**`Crear proyecto 2026 - foco-sol-6.1-flash.bat`**. También existe el lanzador de Valencia.
+Conserva el mismo seguimiento visual, banners y efecto ganador de sol-6.1, pero omite la
+transcripción, las transcripciones guardadas/SRT, los eventos del narrador y la medición LUFS
+del montaje. Sigue leyendo los datos básicos de duración/formato del audio. No necesita
+preparar faster-whisper. El audio original sigue en el proyecto y en la exportación.
+
+Los proyectos se llaman `... - foco-sol-6.1-flash`, separados de sol-6.1. El ahorro de tiempo
+está en omitir el reconocimiento de voz; el análisis visual mantiene su detalle y reutiliza
+los mismos cachés. Si la narración ya estaba calculada, la diferencia de tiempo será menor.
+Los tiempos de partida, recta y meta se deciden con la imagen y los parciales disponibles.
+
+```powershell
+python foco-sol-6.1-flash.py "Carreras\La Rinconada\Reunión 41"
+python foco-sol-6.1-flash.py --pista valencia "Carreras\Valencia"
+```
+
 **Estado: apertura y exportación nativas comprobadas en la carrera 486.** Pasó la generación
 individual/masiva y los chequeos del JSON. Se corrigió el aviso inicial que descartaba el banner
 ganador y Camtasia exportó el MP4 completo a 1080×1920 con audio estéreo. Consulta

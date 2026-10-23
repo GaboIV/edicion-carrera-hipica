@@ -495,6 +495,7 @@ def main():
     ap.add_argument("--parciales",default="");ap.add_argument("--distancias",default="")
     ap.add_argument("--partida",type=float,default=0)
     ap.add_argument("--narrador",choices=["auto","no","transcribir"],default="auto")
+    ap.add_argument("--sol-flash",action="store_true",help="perfil flash: omite todo análisis de narración")
     ap.add_argument("--transcripcion",help="SRT o JSON con segmentos start/end/text")
     ap.add_argument("--desfase-narrador",type=float,default=0,help="segundos que sumar al audio para alinearlo con imagen")
     ap.add_argument("--sin-recta-final",action="store_true")
@@ -510,19 +511,25 @@ def main():
     final=partials[-2] if len(partials)>1 else d["duracion"]*.65
     finish=partials[-1] if partials else d["duracion"]*.78
     rail=base.cargar_o_analizar_recta(a.video,d,max(0,final-25),a.pista)
-    trans=narracion(a.video,a.narrador,a.transcripcion)
-    events=eventos_narrador(trans.get("segmentos",[]),a.desfase_narrador)
+    if a.sol_flash:
+        trans={"estado":"desactivada (foco-sol-6.1-flash)","segmentos":[]}
+        events=[]
+    else:
+        trans=narracion(a.video,a.narrador,a.transcripcion)
+        events=eventos_narrador(trans.get("segmentos",[]),a.desfase_narrador)
     rows=analizar_visual(a.video,d,departure,final,finish,a.pista,a.recalcular)
     r=planificar(rows,d,partials,departure,rail,events,a.sin_recta_final)
+    if a.sol_flash:
+        r["perfil"]="foco-sol-6.1-flash"
     r.update(dividida=base.intervalos_dividida(d["muestras"]),parciales=partials,
              parciales_estimados=estimated,carrera=[start,end],narracion=trans.get("estado"),
              video=os.path.abspath(a.video),duracion=d["duracion"])
     guardar(a.salida,r)
     report=Path(a.salida).with_suffix(".revision.md")
-    report.write_text("# "+PERFIL+"\n\n"+"\n".join("- "+n for n in r["notas"])+
+    report.write_text("# "+r["perfil"]+"\n\n"+"\n".join("- "+n for n in r["notas"])+
                       "\n\nNarración: "+str(r["narracion"])+"\n\nTramos para revisar (segundos):\n"+
                       "\n".join(f"- {lo:.2f}–{hi:.2f}" for lo,hi in r["revisar"])+"\n",encoding="utf-8")
-    print(f"  {PERFIL}: {len(r['keyframes'])} puntos, sin saltos añadidos; narración: {r['narracion']}")
+    print(f"  {r['perfil']}: {len(r['keyframes'])} puntos, sin saltos añadidos; narración: {r['narracion']}")
     for note in r["notas"]:print("  "+note)
     if a.preview:vista_previa(a.video,r["keyframes"],a.preview,d["ancho"])
 

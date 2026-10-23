@@ -745,7 +745,7 @@ PYTHON_VISION = os.path.join(AQUI, ".python-vision", "cpython-3.12.15-windows-x8
 
 def calcular_foco(nuevos, carpeta_salida, nombre, vista_previa, flash=False, pista=PISTA,
                   sin_recta_final=False, sol=False, narrador="auto", transcripcion=None,
-                  desfase_narrador=0.0, recalcular=False):
+                  desfase_narrador=0.0, recalcular=False, sol_flash=False):
     """Datos del foco: keyframes [segundo del video, x del centro, motivo, zoom] y
     los tramos de pantalla dividida; o None si no se pudo calcular."""
     if not os.path.exists(PYTHON_VISION):
@@ -767,6 +767,8 @@ def calcular_foco(nuevos, carpeta_salida, nombre, vista_previa, flash=False, pis
         cmd += ["--flash"]
     if sol:
         cmd += ["--narrador", narrador, "--desfase-narrador", str(desfase_narrador)]
+        if sol_flash:
+            cmd += ["--sol-flash"]
         if transcripcion:
             cmd += ["--transcripcion", transcripcion]
         if recalcular:
@@ -826,7 +828,8 @@ def problemas_animaciones_visuales(clip):
     return problemas
 
 
-def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None, pista=PISTA):
+def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None, pista=PISTA,
+                  omitir_analisis_audio=False):
     with open(plantilla, encoding="utf-8-sig") as f:
         p = json.load(f)
     dir_plantilla = os.path.dirname(os.path.abspath(plantilla))
@@ -894,7 +897,12 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None
                 t["range"] = [0, int(math.ceil(max(info["adur"], info.get("vdur", 0)) * 1000))]
                 t["sampleRate"] = info["sr"]
                 t["numChannels"] = info["ch"]
-                lufs, peak = loudness(nuevo)
+                if omitir_analisis_audio:
+                    lufs, peak = None, None
+                    t.pop("integratedLUFS", None)
+                    t.pop("peakLevel", None)
+                else:
+                    lufs, peak = loudness(nuevo)
                 if lufs is not None:
                     t["integratedLUFS"] = lufs
                 if peak is not None:
@@ -1825,7 +1833,8 @@ def procesar_carrera(carpeta_carrera, a, plantilla):
     if not nuevos.video:
         sys.exit("No encontré el video de la carrera. Arrástralo junto con la carpeta.")
     nuevos.video, nota_formato = revisar_aspecto(nuevos.video, a.pista)
-    nombre = a.nombre or (nombre + " - foco-sol-6.1" if a.sol_6_1 else nombre)
+    perfil_sol = "foco-sol-6.1-flash" if a.sol_6_1_flash else "foco-sol-6.1"
+    nombre = a.nombre or (nombre + " - " + perfil_sol if a.sol_6_1 else nombre)
     print("Video:    %s" % nuevos.video)
     if nota_formato:
         print("Formato:  %s" % nota_formato)
@@ -1839,10 +1848,11 @@ def procesar_carrera(carpeta_carrera, a, plantilla):
         if a.foco_auto:
             foco = calcular_foco(nuevos, a.salida, nombre, a.vista_previa, a.flash, a.pista,
                                  a.sin_recta_final, a.sol_6_1, a.narrador, a.transcripcion,
-                                 a.desfase_narrador, a.recalcular)
+                                 a.desfase_narrador, a.recalcular, a.sol_6_1_flash)
             if foco and a.sol_6_1:
                 foco["efecto_ganador"] = not a.sin_efecto_ganador
-        salida = procesar_2026(plantilla, nuevos, a.salida, nombre, a.limpiar_foco, foco, a.pista)
+        salida = procesar_2026(plantilla, nuevos, a.salida, nombre, a.limpiar_foco, foco, a.pista,
+                              omitir_analisis_audio=a.sol_6_1_flash)
     elif plantilla.lower().endswith(".camproj"):
         if a.limpiar_foco or a.foco_auto or a.flash:
             aviso("--limpiar-foco, --foco-auto y --flash solo funcionan con Camtasia 2026; en 8.6 se conservan los focos.")
@@ -1876,6 +1886,7 @@ def main():
     ap.add_argument("--flash", action="store_true",
                     help="con --foco-auto: versión rápida, con muchos menos movimientos de cámara")
     ap.add_argument("--sol-6-1", action="store_true", help="director foco-sol-6.1 para Camtasia 2026")
+    ap.add_argument("--sol-6-1-flash", action="store_true", help="foco-sol-6.1-flash: seguimiento visual sin analizar narración")
     ap.add_argument("--narrador", choices=["auto", "no", "transcribir"], default="auto")
     ap.add_argument("--transcripcion", help="archivo SRT o JSON del narrador (una sola carrera)")
     ap.add_argument("--desfase-narrador", type=float, default=0.0)
@@ -1894,6 +1905,11 @@ def main():
                          "(hace el proyecto de cada una)")
     a = ap.parse_args()
     pista_explicita = a.pista
+    if a.sol_6_1_flash:
+        if a.transcripcion:
+            ap.error("foco-sol-6.1-flash no utiliza transcripciones")
+        a.sol_6_1 = True
+        a.narrador = "no"
     if a.sol_6_1:
         a.foco_auto = True
         if not a.plantilla.lower().endswith(".tscproj"):
