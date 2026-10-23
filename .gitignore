@@ -2,3 +2,4 @@ Carreras/*/*
 .python-vision/
 modelos/
 __pycache__/
+/validacion-sol/

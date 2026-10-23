@@ -3,6 +3,94 @@
 Arrastra sobre uno de estos `.bat` la carpeta de la carrera (por ejemplo `Carreras\461-2026`).
 Todos crean un proyecto **nuevo**: la plantilla nunca se modifica.
 
+## Nuevo: foco-sol-6.1 (Camtasia 2026)
+
+**Estado: apertura y exportación nativas comprobadas en la carrera 486.** Pasó la generación
+individual/masiva y los chequeos del JSON. Se corrigió el aviso inicial que descartaba el banner
+ganador y Camtasia exportó el MP4 completo a 1080×1920 con audio estéreo. Consulta
+`ANALISIS-FOCO-SOL-6.1.md` para los resultados y revisa los tramos de baja confianza.
+
+Arrastra una carrera, una reunión completa o varias carpetas sobre
+**`Crear proyecto 2026 - foco-sol-6.1.bat`**. Para Valencia también hay un bat propio.
+El mismo programa sirve para individual y masivo, recorre subcarpetas y continúa si alguna
+carrera falla. Los proyectos llevan el sufijo `- foco-sol-6.1`, separados de tus ediciones.
+
+Este es un **perfil nuevo de dirección de cámara**, con el detector YOLO existente;
+no son pesos nuevos entrenados ni una llamada a un modelo de OpenAI.
+
+- Busca el partidor mediante consenso de barras/puertas, en vez de centrar cualquier caballo
+  visible en la previa. Si no lo reconoce, lo marca para revisión.
+- Confirma el seguimiento dentro de cada toma. Reinicia las identidades y el sentido al cambiar
+  de cámara, sin mezclar pistas de tomas diferentes.
+- Vuelve a detectar con más detalle en partida, curva, recta y llegada. Conserva punteros
+  parcialmente visibles en los bordes, que antes podían descartarse.
+- Prioriza los punteros en tomas laterales. En perspectiva ambigua conserva el grupo: no
+  inventa un orden de llegada a partir de la posición horizontal.
+- No hace excursiones bruscas al rezagado. Incluye la mala partida si cabe con los punteros.
+- Limita velocidad y aceleración, también después de la meta; no añade cortes de encuadre.
+  Los cortes que ya trae la transmisión siguen presentes en el video fuente.
+- Escribe los paneos completos en el JSON de Camtasia. No los comprime al último segundo,
+  como ocurría con flash. La vista previa y el proyecto usan interpolación lineal equivalente.
+- Añade un pulso discreto al banner ganador en la meta estimada. Se desactiva con
+  `--sin-efecto-ganador`.
+
+La primera ejecución tarda más que flash: añade rescate visual y, si está instalado, el
+reconocimiento de voz. Las siguientes reutilizan el análisis. Los banners, cintillos y el
+formato propio de cada hipódromo se siguen generando con el flujo existente.
+
+### Narrador
+
+El perfil usa **faster-whisper small/int8 local** cuando sus pesos están en
+`modelos/faster-whisper-small`. No transmite el audio ni el video a un servicio externo.
+La preparación se hace una sola vez con el Python de `.python-vision`:
+
+```powershell
+.\.python-vision\cpython-3.12.15-windows-x86_64-none\python.exe -m pip install -r requirements-sol.txt
+.\.python-vision\cpython-3.12.15-windows-x86_64-none\python.exe preparar_narrador_sol.py
+```
+
+También acepta un `.srt` con el mismo nombre base del video, o un archivo
+`<video>.narracion.json` con una lista de segmentos `start`, `end`, `text`.
+Con `--transcripcion archivo.srt` se proporciona la transcripción de una carrera concreta.
+En masivo pon cada transcripción junto a su video.
+
+Se coordinan avisos de **partida, recta final y meta** con la imagen; las palabras conservan
+sus tiempos. `--desfase-narrador 0.5` suma medio segundo a los avisos si la transmisión tiene
+el relato adelantado. No modifica ni desplaza el audio del video.
+
+**Límite actual:** reconocer un nombre en el relato no demuestra qué caballo corresponde a
+una caja de detección. El sistema no identifica de forma garantizada nombres/dorsales/casacas,
+ni el ganador por identidad. Los números de seguimiento son temporales y locales a la toma.
+No cambia de caballo sólo porque el narrador mencione un nombre. La transcripción puede fallar
+con nombres propios, música o gritos. La sincronía automática implementada es de fases.
+
+### Uso y revisión
+
+```powershell
+python foco-sol-6.1.py "Carreras\La Rinconada\Reunión 41\C486"
+python foco-sol-6.1.py "Carreras\La Rinconada\Reunión 41"
+python foco-sol-6.1.py --pista valencia "Carreras\Valencia"
+python foco-sol-6.1.py --narrador no --vista-previa "Carreras\La Rinconada\461-2026"
+```
+
+Opciones: `--salida`, `--nombre` (individual), `--recalcular` (rehace visión sol),
+`--narrador auto|no|transcribir`, `--sin-recta-final` y `--sin-efecto-ganador`.
+`transcribir` exige que el transcriptor esté preparado; `auto` usa sólo visión si falta.
+
+Además del proyecto se guardan `... - foco.json` y `... - foco.revision.md`, con los intervalos
+de baja confianza, fases, objetivos y decisiones. El informe no es una medición de exactitud:
+revisa especialmente perspectivas frontales, oclusiones y cambios de toma. No se puede
+prometer un foco correcto en todos los cuadros si la transmisión no muestra al puntero.
+
+Los archivos `<video>.sol-6.1-cache.json` y `<video>.narracion-sol.json` se guardan al lado
+del video. El primero valida archivo, pista, análisis de base y versión antes de reutilizarlo;
+el segundo valida archivo y modificación. `--recalcular` rehace el primero. Si se sustituye
+un SRT, se lee la versión actual en cada ejecución.
+
+Pruebas: ejecutar `python -m unittest -v test_foco_sol` con el Python de visión.
+El análisis de los problemas anteriores y los resultados de la comprobación están en
+`ANALISIS-FOCO-SOL-6.1.md`.
+
 | Bat | Qué hace |
 | --- | --- |
 | `Crear proyecto 2026.bat` | Banners, cintillo y video, con el foco que trae la plantilla. |

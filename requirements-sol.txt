@@ -1,0 +1,2 @@
+# Añadido al entorno de visión existente (YOLO, OpenCV, NumPy, SciPy).
+faster-whisper==1.2.1

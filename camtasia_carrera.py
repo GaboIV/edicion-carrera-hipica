@@ -744,30 +744,41 @@ PYTHON_VISION = os.path.join(AQUI, ".python-vision", "cpython-3.12.15-windows-x8
 
 
 def calcular_foco(nuevos, carpeta_salida, nombre, vista_previa, flash=False, pista=PISTA,
-                  sin_recta_final=False):
+                  sin_recta_final=False, sol=False, narrador="auto", transcripcion=None,
+                  desfase_narrador=0.0, recalcular=False):
     """Datos del foco: keyframes [segundo del video, x del centro, motivo, zoom] y
     los tramos de pantalla dividida; o None si no se pudo calcular."""
     if not os.path.exists(PYTHON_VISION):
+        if sol:
+            raise RuntimeError("Falta el Python de visión; no se generó un proyecto con foco antiguo.")
         aviso("No está el Python de visión (.python-vision); el foco queda como en la plantilla.")
         return None
     print("\nFoco automático%s:" % (" (flash)" if flash else ""))
     eventos = parciales_de(nuevos, pista) or []
     salida = os.path.join(carpeta_salida, nombre + " - foco.json")
-    cmd = [PYTHON_VISION, os.path.join(AQUI, "foco_carrera.py"), nuevos.video, "--salida", salida,
+    cmd = [PYTHON_VISION, os.path.join(AQUI, "foco_sol_6_1.py" if sol else "foco_carrera.py"), nuevos.video, "--salida", salida,
            "--parciales", ",".join("%.2f" % t for t in eventos), "--pista", pista]
     distancias = nuevos.distancias_ordenadas()
     if distancias:
         cmd += ["--distancias", ",".join("%d" % d for d in distancias)]
     if getattr(nuevos, "partida", None) is not None:
         cmd += ["--partida", "%.2f" % nuevos.partida]
-    if flash:
+    if flash and not sol:
         cmd += ["--flash"]
+    if sol:
+        cmd += ["--narrador", narrador, "--desfase-narrador", str(desfase_narrador)]
+        if transcripcion:
+            cmd += ["--transcripcion", transcripcion]
+        if recalcular:
+            cmd += ["--recalcular"]
     if sin_recta_final:
         cmd += ["--sin-recta-final"]
     if vista_previa:
         cmd += ["--preview", os.path.join(carpeta_salida, nombre + " - vista previa del foco.mp4")]
     sys.stdout.flush()
     if subprocess.run(cmd).returncode:
+        if sol:
+            raise RuntimeError("Falló foco-sol-6.1; revisa el error anterior. No se usó el foco de la plantilla.")
         aviso("El foco automático falló; el foco queda como en la plantilla.")
         return None
     with open(salida, encoding="utf-8") as f:
@@ -797,6 +808,22 @@ def escalar_param(params, nombre, factor):
 def valor_param(params, nombre, defecto=0.0):
     v = params.get(nombre, defecto)
     return v.get("defaultValue", defecto) if isinstance(v, dict) else v
+
+
+def problemas_animaciones_visuales(clip):
+    """Una inversión de escala necesita su propio tramo visual nativo en Camtasia."""
+    problemas = []
+    for anim in clip.get("animationTracks", {}).get("visual", []):
+        fin = anim["endTime"]
+        inicio = fin - anim["duration"]
+        for nombre, param in clip.get("parameters", {}).items():
+            if not isinstance(param, dict):
+                continue
+            incluidos = [k for k in param.get("keyframes", [])
+                         if k["time"] >= inicio and k["endTime"] <= fin]
+            if len(incluidos) > 1:
+                problemas.append("Una animación visual agrupa varios cambios de %s; dividirla en tramos." % nombre)
+    return problemas
 
 
 def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None, pista=PISTA):
@@ -966,13 +993,18 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None
                 v["defaultValue"] = v["keyframes"][0]["value"]
                 del v["keyframes"]
         escala_base = float(H) / float(fuente["h"])
-        par["scale0"] = escala_base
-        par["scale1"] = escala_base
-        par["translation1"] = 0.0
+        if foco.get("paneo_continuo"):
+            # Mantener la representación tipada de la plantilla 2026.
+            for nombre_param, valor in (("scale0", escala_base), ("scale1", escala_base), ("translation1", 0.0)):
+                par[nombre_param] = {"type": "double", "defaultValue": valor}
+        else:
+            par["scale0"] = escala_base
+            par["scale1"] = escala_base
+            par["translation1"] = 0.0
         ancho_foco = float(foco.get("ancho") or 1920.0)
         escala = escala_base * (fuente["w"] / ancho_foco)
         tr = lambda cx: (ancho_foco / 2.0 - cx) * escala
-        es_flash = bool(foco.get("flash"))
+        es_flash = bool(foco.get("flash")) and not foco.get("paneo_continuo")
         dur_trans = ER  # 1.0 s para transiciones suaves tipo Camtasia en modo flash
 
         desde = x.get("mediaStart", 0)
@@ -1120,6 +1152,24 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None
             m.setdefault("attributes", {})["ident"] = fuentes[sid]["base"]
             m["start"] = unidades(ini)
             m["duration"] = max(unidades(fin) - m["start"], FRAME)
+            if rango == GANADOR and foco and foco.get("efecto_ganador"):
+                # Pulso pequeño del banner, en parámetros nativos ya usados por Camtasia.
+                # Se dispara en la meta estimada, sin alterar los tiempos de los banners.
+                instante = max(0, unidades(foco["recta"]["meta"]) - m["start"])
+                fin_pulso = instante + unidades(.8)
+                if fin_pulso < m["duration"]:
+                    parametros = m.setdefault("parameters", {})
+                    for eje in ("scale0", "scale1"):
+                        original = valor_param(parametros, eje, 1.0)
+                        parametros[eje] = {"type": "double", "defaultValue": original, "interp": "linr",
+                            "keyframes": [
+                                {"time": instante, "endTime": instante+unidades(.3),
+                                 "duration": unidades(.3), "value": original*1.018},
+                                {"time": instante+unidades(.3), "endTime": fin_pulso,
+                                 "duration": fin_pulso-instante-unidades(.3), "value": original}]}
+                    m["animationTracks"] = {"visual": [
+                        {"endTime": k["endTime"], "duration": k["duration"]}
+                        for k in parametros["scale0"]["keyframes"]]}
             armados.append(m)
         if not armados:
             return
@@ -1320,6 +1370,8 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None
             if d <= 0:
                 problemas.append("%s: duración 0" % donde)
                 return
+            if foco and foco.get("paneo_continuo"):
+                problemas.extend(donde + ": " + msg for msg in problemas_animaciones_visuales(x))
             for par, val in (x.get("parameters") or {}).items():
                 if not isinstance(val, dict):
                     continue
@@ -1369,7 +1421,9 @@ def procesar_2026(plantilla, nuevos, salida_dir, nombre, limpiar_foco, foco=None
             aviso(pr)
         return problemas
 
-    revisar_proyecto()
+    problemas = revisar_proyecto()
+    if foco and foco.get("paneo_continuo") and problemas:
+        raise ValueError("El proyecto sol-6.1 no pasó la validación: " + "; ".join(problemas))
     meta = p.setdefault("metadata", {})
     meta["Title"] = nombre
     meta["AutoSaveFile"] = ""
@@ -1771,7 +1825,7 @@ def procesar_carrera(carpeta_carrera, a, plantilla):
     if not nuevos.video:
         sys.exit("No encontré el video de la carrera. Arrástralo junto con la carpeta.")
     nuevos.video, nota_formato = revisar_aspecto(nuevos.video, a.pista)
-    nombre = a.nombre or nombre
+    nombre = a.nombre or (nombre + " - foco-sol-6.1" if a.sol_6_1 else nombre)
     print("Video:    %s" % nuevos.video)
     if nota_formato:
         print("Formato:  %s" % nota_formato)
@@ -1784,7 +1838,10 @@ def procesar_carrera(carpeta_carrera, a, plantilla):
     if plantilla.lower().endswith(".tscproj"):
         if a.foco_auto:
             foco = calcular_foco(nuevos, a.salida, nombre, a.vista_previa, a.flash, a.pista,
-                                 a.sin_recta_final)
+                                 a.sin_recta_final, a.sol_6_1, a.narrador, a.transcripcion,
+                                 a.desfase_narrador, a.recalcular)
+            if foco and a.sol_6_1:
+                foco["efecto_ganador"] = not a.sin_efecto_ganador
         salida = procesar_2026(plantilla, nuevos, a.salida, nombre, a.limpiar_foco, foco, a.pista)
     elif plantilla.lower().endswith(".camproj"):
         if a.limpiar_foco or a.foco_auto or a.flash:
@@ -1818,6 +1875,12 @@ def main():
                     help="solo 2026: calcula el foco (paneo) siguiendo a los caballos en el video")
     ap.add_argument("--flash", action="store_true",
                     help="con --foco-auto: versión rápida, con muchos menos movimientos de cámara")
+    ap.add_argument("--sol-6-1", action="store_true", help="director foco-sol-6.1 para Camtasia 2026")
+    ap.add_argument("--narrador", choices=["auto", "no", "transcribir"], default="auto")
+    ap.add_argument("--transcripcion", help="archivo SRT o JSON del narrador (una sola carrera)")
+    ap.add_argument("--desfase-narrador", type=float, default=0.0)
+    ap.add_argument("--recalcular", action="store_true", help="rehace el análisis visual sol-6.1")
+    ap.add_argument("--sin-efecto-ganador", action="store_true", help="desactiva el pulso suave del banner ganador")
     ap.add_argument("--sin-recta-final", action="store_true",
                     help="con --foco-auto: en la recta final no mueve el foco (queda fijo para "
                          "ajustarlo a mano); después de la meta sigue automático")
@@ -1830,6 +1893,11 @@ def main():
                     help="carpeta de la carrera, o una carpeta con varias carreras adentro "
                          "(hace el proyecto de cada una)")
     a = ap.parse_args()
+    pista_explicita = a.pista
+    if a.sol_6_1:
+        a.foco_auto = True
+        if not a.plantilla.lower().endswith(".tscproj"):
+            ap.error("foco-sol-6.1 requiere una plantilla de Camtasia 2026")
 
     plantilla = os.path.abspath(a.plantilla)
     if os.path.isdir(plantilla):  # carpeta .tscproj de 2026
@@ -1849,7 +1917,26 @@ def main():
 
     # ¿es una carrera o una carpeta con varias carreras adentro?
     raiz = carpetas[0]
-    if videos_en([raiz]):
+    if a.sol_6_1:
+        carreras = []
+        vistos = set()
+        for carpeta_raiz in carpetas:
+            for actual, dirs, _ in os.walk(carpeta_raiz):
+                dirs[:] = sorted(d for d in dirs if not d.lower().endswith((".tscproj", ".camproj"))
+                                 and not d.startswith("."))
+                if videos_en([actual]):
+                    canon = os.path.normcase(os.path.realpath(actual))
+                    if canon not in vistos:
+                        carreras.append(actual)
+                        vistos.add(canon)
+                    dirs[:] = []
+        if not carreras:
+            sys.exit("No encontré carreras en las carpetas indicadas.")
+        if a.transcripcion and len(carreras) != 1:
+            ap.error("--transcripcion se aplica a una sola carrera; en masivo pon un SRT junto a cada video")
+        if a.nombre and len(carreras) != 1:
+            ap.error("--nombre se aplica a una sola carrera")
+    elif videos_en([raiz]):
         carreras = [raiz]
     else:
         carreras = [os.path.join(raiz, f) for f in sorted(os.listdir(raiz))
@@ -1867,7 +1954,15 @@ def main():
             print(" Carrera %d/%d: %s" % (i, len(carreras), os.path.basename(carrera)))
             print("=" * 74)
         try:
-            salida, avisado = procesar_carrera(carrera, a, plantilla)
+            # Cada carrera conserva su salida: procesar_carrera ajusta a.salida.
+            opciones = copy.copy(a)
+            plantilla_carrera = plantilla
+            if a.sol_6_1 and not pista_explicita:
+                opciones.pista = "valencia" if "valencia" in carrera.lower() else PISTA
+                if os.path.basename(plantilla).lower() in ("plantilla-2026.tscproj", "plantilla-2026-valencia.tscproj"):
+                    plantilla_carrera = os.path.join(os.path.dirname(plantilla),
+                        "plantilla-2026-valencia.tscproj" if opciones.pista == "valencia" else "plantilla-2026.tscproj")
+            salida, avisado = procesar_carrera(carrera, opciones, plantilla_carrera)
             hechas.append((carrera, salida, avisado))
         except SystemExit as e:
             falladas.append((carrera, str(e)))
@@ -1885,6 +1980,8 @@ def main():
         for carrera, error in falladas:
             print("   [!]  %-34s %s" % (os.path.basename(carrera), error))
         print("=" * 74)
+    if falladas:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
